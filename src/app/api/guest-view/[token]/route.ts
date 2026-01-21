@@ -1,21 +1,23 @@
 import { NextResponse } from "next/server"
-import type { Prisma } from "@prisma/client"
 import { prisma } from "@/lib/prisma"
 
-type GuestViewLinkWithDays = Prisma.GuestViewLinkGetPayload<{
-  include: {
-    wedding: true
-    allowedEventDays: {
-      include: {
-        eventDay: {
-          include: {
-            timelineItems: true
-          }
-        }
-      }
-    }
+type GuestViewAllowedEventDay = {
+  eventDay: {
+    id: string
+    label: string
+    date: Date
+    timelineItems: Array<{
+      id: string
+      startTime: Date | null
+      endTime: Date | null
+      title: string
+      locationName: string | null
+      locationAddress: string | null
+      locationGoogleMapsUrl: string | null
+      audienceNotes: string | null
+    }>
   }
-}>
+}
 
 export async function GET(
   request: Request,
@@ -23,7 +25,7 @@ export async function GET(
 ) {
   const { token } = await params
 
-  const link = (await prisma.guestViewLink.findUnique({
+  const link = await prisma.guestViewLink.findUnique({
     where: { token },
     include: {
       wedding: true,
@@ -52,7 +54,7 @@ export async function GET(
         }
       }
     }
-  })) as GuestViewLinkWithDays | null
+  })
 
   if (!link) {
     return NextResponse.json({ error: "Link not found" }, { status: 404 })
@@ -61,6 +63,8 @@ export async function GET(
   if (link.expiresAt && new Date() > link.expiresAt) {
     return NextResponse.json({ error: "Link expired" }, { status: 410 })
   }
+
+  const allowedEventDays = link.allowedEventDays as GuestViewAllowedEventDay[]
 
   // Format response
   const response = {
@@ -71,7 +75,7 @@ export async function GET(
     guestLink: {
       label: link.label
     },
-    days: link.allowedEventDays.map(aed => ({
+    days: allowedEventDays.map((aed) => ({
       id: aed.eventDay.id,
       label: aed.eventDay.label,
       date: aed.eventDay.date,

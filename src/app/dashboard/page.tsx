@@ -92,7 +92,7 @@ export default async function DashboardPage() {
           </div>
           <h1 className="text-2xl md:text-3xl font-bold">{session.user.name}</h1>
           <p className="text-muted-foreground mt-1">
-            {session.user.role === "ADMIN" ? "Wedding Coordinator" : session.user.role.toLowerCase()}
+            {session.user.role === "PLANNER" ? "Wedding Coordinator" : session.user.role.toLowerCase()}
           </p>
         </div>
 

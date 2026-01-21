@@ -19,6 +19,10 @@ A wedding-planning timeline and guest-facing experience built with Next.js and T
 
 ## Getting Started
 
+Choose one of the following setups.
+
+### Option A: Local Node.js
+
 1) Install dependencies
 
 ```bash
@@ -27,7 +31,7 @@ npm install
 
 2) Configure environment variables
 
-Create a `.env` file in the project root and add values for your setup. If you use Prisma and NextAuth, you will typically need at least:
+Copy `.env.example` to `.env` and update values for your setup. At minimum:
 
 ```bash
 DATABASE_URL=
@@ -42,6 +46,23 @@ npm run dev
 ```
 
 Open [http://localhost:3000](http://localhost:3000) to view the app.
+
+### Option B: Docker
+
+Build the image and run the container:
+
+```bash
+docker build -t shaadi-timeline .
+docker run --rm -p 3000:3000 --env-file .env shaadi-timeline
+```
+
+### Option C: Docker Compose (App + Postgres)
+
+Start the stack:
+
+```bash
+docker compose up --build
+```
 
 ## Scripts
 

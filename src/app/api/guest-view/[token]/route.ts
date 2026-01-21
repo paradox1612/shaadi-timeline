@@ -1,5 +1,21 @@
 import { NextResponse } from "next/server"
+import type { Prisma } from "@prisma/client"
 import { prisma } from "@/lib/prisma"
+
+type GuestViewLinkWithDays = Prisma.GuestViewLinkGetPayload<{
+  include: {
+    wedding: true
+    allowedEventDays: {
+      include: {
+        eventDay: {
+          include: {
+            timelineItems: true
+          }
+        }
+      }
+    }
+  }
+}>
 
 export async function GET(
   request: Request,
@@ -7,7 +23,7 @@ export async function GET(
 ) {
   const { token } = await params
 
-  const link = await prisma.guestViewLink.findUnique({
+  const link = (await prisma.guestViewLink.findUnique({
     where: { token },
     include: {
       wedding: true,
@@ -36,7 +52,7 @@ export async function GET(
         }
       }
     }
-  })
+  })) as GuestViewLinkWithDays | null
 
   if (!link) {
     return NextResponse.json({ error: "Link not found" }, { status: 404 })

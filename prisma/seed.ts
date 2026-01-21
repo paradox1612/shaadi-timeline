@@ -6,6 +6,37 @@ const prisma = new PrismaClient()
 async function main() {
   console.log("Seeding database...")
 
+  // Create admin user from env or defaults
+  const adminEmail = process.env.ADMIN_EMAIL || "admin"
+  const adminPassword = process.env.ADMIN_PASSWORD || "pass123"
+  const adminName = process.env.ADMIN_NAME || "Admin"
+
+  const existingAdmin = await prisma.user.findUnique({
+    where: { email: adminEmail },
+  })
+
+  if (!existingAdmin) {
+    const hashedAdminPassword = await bcrypt.hash(adminPassword, 10)
+    const admin = await prisma.user.create({
+      data: {
+        name: adminName,
+        email: adminEmail,
+        passwordHash: hashedAdminPassword,
+        role: "PLANNER",
+      },
+    })
+    console.log("Created admin user:", admin.email)
+  } else {
+    console.log("Admin user already exists:", adminEmail)
+  }
+
+  // Check if demo data already exists
+  const existingWedding = await prisma.wedding.findFirst()
+  if (existingWedding) {
+    console.log("Demo data already exists, skipping...")
+    return
+  }
+
   // Create wedding
   const wedding = await prisma.wedding.create({
     data: {

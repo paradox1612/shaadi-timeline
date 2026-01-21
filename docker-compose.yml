@@ -1,7 +1,6 @@
 services:
   app:
-    build:
-      context: .
+    image: ghcr.io/paradox1612/shaadi-timeline:latest
     ports:
       - "3000:3000"
     env_file:

@@ -1,0 +1,212 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum UserRole {
+  BRIDE
+  GROOM
+  PLANNER
+  VENDOR
+}
+
+enum VendorType {
+  PHOTOGRAPHER
+  VIDEOGRAPHER
+  DJ
+  CATERER
+  DECOR
+  MUA
+  OTHER
+}
+
+enum TimelineVisibility {
+  INTERNAL
+  VENDOR
+  AUDIENCE
+}
+
+model User {
+  id              String       @id @default(cuid())
+  name            String
+  email           String       @unique
+  passwordHash    String
+  role            UserRole
+  phone           String?      @db.VarChar(20)
+
+  vendorProfile   VendorProfile?
+
+  createdAt       DateTime     @default(now())
+  updatedAt       DateTime     @updatedAt
+
+  createdTimelineItems TimelineItem[] @relation("TimelineItemCreatedBy")
+  comments              Comment[]
+  timeAdjustments       TimeAdjustment[]
+
+  @@index([role])
+}
+
+model Wedding {
+  id            String        @id @default(cuid())
+  name          String
+  locationCity  String
+  timezone      String
+  startDate     DateTime
+  endDate       DateTime
+
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+
+  eventDays     EventDay[]
+  vendors       VendorProfile[]
+  guestLinks    GuestViewLink[]
+}
+
+model EventDay {
+  id         String       @id @default(cuid())
+  weddingId  String
+  date       DateTime
+  label      String
+  sortOrder  Int          @default(0)
+
+  wedding    Wedding      @relation(fields: [weddingId], references: [id], onDelete: Cascade)
+  timelineItems TimelineItem[]
+  guestViewLinks GuestViewLinkEventDay[]
+  timeAdjustments TimeAdjustment[]
+
+  @@index([weddingId])
+  @@index([date])
+}
+
+model VendorProfile {
+  id            String       @id @default(cuid())
+  weddingId     String
+  type          VendorType
+  companyName   String
+  contactName   String
+  phone         String?      @db.VarChar(20)
+  email         String?      @unique
+  notes         String?
+
+  userId        String?      @unique
+  user          User?        @relation(fields: [userId], references: [id])
+
+  wedding       Wedding      @relation(fields: [weddingId], references: [id], onDelete: Cascade)
+
+  timelineAssignments TimelineItemVendor[]
+
+  createdAt     DateTime     @default(now())
+  updatedAt     DateTime     @updatedAt
+
+  @@index([weddingId])
+  @@index([type])
+}
+
+model TimelineItem {
+  id                 String              @id @default(cuid())
+  eventDayId         String
+  startTime          DateTime
+  endTime            DateTime?
+  title              String
+  description        String?
+  locationName       String?
+  locationAddress    String?
+  locationGoogleMapsUrl String?
+
+  visibility         TimelineVisibility  @default(INTERNAL)
+
+  internalNotes      String?
+  vendorNotes        String?
+  audienceNotes      String?
+
+  sortOrder          Int                 @default(0)
+
+  createdByUserId    String
+  createdAt          DateTime            @default(now())
+  updatedAt          DateTime            @updatedAt
+
+  eventDay           EventDay            @relation(fields: [eventDayId], references: [id], onDelete: Cascade)
+  createdBy          User                @relation("TimelineItemCreatedBy", fields: [createdByUserId], references: [id])
+
+  assignedVendors    TimelineItemVendor[]
+  comments           Comment[]
+  timeAdjustments    TimeAdjustment[]
+
+  @@index([eventDayId])
+  @@index([startTime])
+  @@index([visibility])
+}
+
+model TimelineItemVendor {
+  timelineItemId String
+  vendorProfileId String
+
+  timelineItem   TimelineItem   @relation(fields: [timelineItemId], references: [id], onDelete: Cascade)
+  vendor         VendorProfile  @relation(fields: [vendorProfileId], references: [id], onDelete: Cascade)
+
+  @@id([timelineItemId, vendorProfileId])
+  @@index([vendorProfileId])
+}
+
+model GuestViewLink {
+  id             String         @id @default(cuid())
+  weddingId      String
+  token          String         @unique
+  label          String
+  createdAt      DateTime       @default(now())
+  expiresAt      DateTime?
+
+  wedding        Wedding        @relation(fields: [weddingId], references: [id], onDelete: Cascade)
+  allowedEventDays GuestViewLinkEventDay[]
+
+  @@index([weddingId])
+}
+
+model GuestViewLinkEventDay {
+  guestViewLinkId String
+  eventDayId      String
+
+  guestViewLink   GuestViewLink @relation(fields: [guestViewLinkId], references: [id], onDelete: Cascade)
+  eventDay        EventDay      @relation(fields: [eventDayId], references: [id], onDelete: Cascade)
+
+  @@id([guestViewLinkId, eventDayId])
+  @@index([eventDayId])
+}
+
+model Comment {
+  id             String     @id @default(cuid())
+  timelineItemId String
+  authorUserId   String
+  text           String
+
+  createdAt      DateTime   @default(now())
+
+  timelineItem   TimelineItem @relation(fields: [timelineItemId], references: [id], onDelete: Cascade)
+  author         User         @relation(fields: [authorUserId], references: [id])
+
+  @@index([timelineItemId])
+  @@index([authorUserId])
+}
+
+model TimeAdjustment {
+  id                String       @id @default(cuid())
+  eventDayId        String
+  fromItemId        String
+  adjustmentMinutes Int          // Positive = delay, Negative = earlier
+  reason            String?
+
+  appliedByUserId   String
+  appliedAt         DateTime     @default(now())
+
+  eventDay          EventDay     @relation(fields: [eventDayId], references: [id], onDelete: Cascade)
+  appliedBy         User         @relation(fields: [appliedByUserId], references: [id])
+  fromItem          TimelineItem @relation(fields: [fromItemId], references: [id], onDelete: Cascade)
+
+  @@index([eventDayId])
+  @@index([fromItemId])
+  @@index([appliedAt])
+}

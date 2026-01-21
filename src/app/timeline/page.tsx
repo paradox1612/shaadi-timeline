@@ -42,6 +42,8 @@ import {
   CalendarDays,
   ChevronRight,
   Users,
+  X,
+  Pencil,
 } from "lucide-react"
 
 interface EventDay {
@@ -346,6 +348,7 @@ export default function TimelinePage() {
   const [showAddItem, setShowAddItem] = useState(false)
   const [showAddDay, setShowAddDay] = useState(false)
   const [refreshKey, setRefreshKey] = useState(0)
+  const [editMode, setEditMode] = useState(false)
 
   // Form state
   const [newDayLabel, setNewDayLabel] = useState("")
@@ -445,6 +448,32 @@ export default function TimelinePage() {
     })
     if (res.ok) {
       setTimelineItems(timelineItems.filter((item) => item.id !== itemId))
+    }
+  }
+
+  const handleDeleteDay = async (dayId: string) => {
+    const day = eventDays.find((d) => d.id === dayId)
+    if (!day) return
+
+    const itemCount = day._count?.timelineItems || 0
+    const message = itemCount > 0
+      ? `Are you sure you want to delete "${day.label}"? This will also delete ${itemCount} timeline item${itemCount > 1 ? "s" : ""}.`
+      : `Are you sure you want to delete "${day.label}"?`
+
+    if (!confirm(message)) return
+
+    const res = await fetch(`/api/event-days/${dayId}`, {
+      method: "DELETE",
+    })
+    if (res.ok) {
+      const updatedDays = eventDays.filter((d) => d.id !== dayId)
+      setEventDays(updatedDays)
+      if (activeDay === dayId && updatedDays.length > 0) {
+        setActiveDay(updatedDays[0].id)
+      } else if (updatedDays.length === 0) {
+        setActiveDay("")
+        setTimelineItems([])
+      }
     }
   }
 
@@ -683,22 +712,59 @@ export default function TimelinePage() {
           <>
             {/* Horizontal scrollable day tabs - Mobile friendly */}
             <div className="relative mb-6">
+              <div className="flex items-center gap-2 mb-3">
+                <button
+                  onClick={() => setEditMode(!editMode)}
+                  className={cn(
+                    "flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium rounded-full transition-all",
+                    editMode
+                      ? "bg-primary text-primary-foreground"
+                      : "text-muted-foreground hover:text-foreground hover:bg-muted"
+                  )}
+                >
+                  <Pencil className="h-3.5 w-3.5" />
+                  {editMode ? "Done" : "Edit"}
+                </button>
+                {editMode && (
+                  <span className="text-xs text-muted-foreground animate-in fade-in">
+                    Tap the × to remove a day
+                  </span>
+                )}
+              </div>
               <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide -mx-4 px-4">
                 {eventDays.map((day) => (
-                  <button
-                    key={day.id}
-                    onClick={() => setActiveDay(day.id)}
-                    className={cn(
-                      "flex-shrink-0 px-4 py-3 rounded-2xl text-sm font-medium transition-all duration-200",
-                      "min-w-[100px] text-center",
-                      activeDay === day.id
-                        ? "bg-primary text-primary-foreground shadow-md"
-                        : "bg-muted/60 text-muted-foreground hover:bg-muted"
+                  <div key={day.id} className="relative flex-shrink-0">
+                    <button
+                      onClick={() => !editMode && setActiveDay(day.id)}
+                      className={cn(
+                        "px-4 py-3 rounded-2xl text-sm font-medium transition-all duration-200",
+                        "min-w-[100px] text-center",
+                        activeDay === day.id
+                          ? "bg-primary text-primary-foreground shadow-md"
+                          : "bg-muted/60 text-muted-foreground hover:bg-muted",
+                        editMode && "animate-wiggle"
+                      )}
+                    >
+                      <div className="font-semibold">{day.label}</div>
+                      <div className="text-xs opacity-80 mt-0.5">{formatDate(day.date)}</div>
+                    </button>
+                    {editMode && (
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          handleDeleteDay(day.id)
+                        }}
+                        className={cn(
+                          "absolute -top-2 -right-2 h-6 w-6 rounded-full flex items-center justify-center",
+                          "bg-destructive text-destructive-foreground",
+                          "hover:scale-110 active:scale-95 transition-transform",
+                          "shadow-md animate-in zoom-in duration-200"
+                        )}
+                      >
+                        <X className="h-3.5 w-3.5" />
+                      </button>
                     )}
-                  >
-                    <div className="font-semibold">{day.label}</div>
-                    <div className="text-xs opacity-80 mt-0.5">{formatDate(day.date)}</div>
-                  </button>
+                  </div>
                 ))}
               </div>
             </div>

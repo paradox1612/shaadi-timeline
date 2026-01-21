@@ -283,7 +283,7 @@ export default async function GuestViewPage({
         <div className="text-center mt-12 pb-8">
           <div className="inline-flex items-center gap-2 text-sm text-muted-foreground/60">
             <Heart className="h-4 w-4 text-primary/40" />
-            <span>Powered by ShaadiTimeline</span>
+            <span>kush love for freya</span>
           </div>
         </div>
       </div>

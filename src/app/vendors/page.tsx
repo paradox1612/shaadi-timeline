@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react"
 import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Card, CardContent } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
@@ -19,11 +19,27 @@ import {
   DialogHeader,
   DialogTitle,
   DialogTrigger,
-  DialogFooter,
 } from "@/components/ui/dialog"
+import {
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+  SheetTrigger,
+} from "@/components/ui/sheet"
 import { Badge } from "@/components/ui/badge"
 import { Nav } from "@/components/nav"
 import { useSession } from "next-auth/react"
+import {
+  Plus,
+  Users,
+  Phone,
+  Mail,
+  Pencil,
+  Trash2,
+  Building2,
+  User,
+} from "lucide-react"
 
 interface Vendor {
   id: string
@@ -37,13 +53,13 @@ interface Vendor {
 }
 
 const VENDOR_TYPES = [
-  { value: "PHOTOGRAPHER", label: "Photographer" },
-  { value: "VIDEOGRAPHER", label: "Videographer" },
-  { value: "DJ", label: "DJ" },
-  { value: "CATERER", label: "Caterer" },
-  { value: "DECOR", label: "Decor" },
-  { value: "MUA", label: "Makeup Artist" },
-  { value: "OTHER", label: "Other" },
+  { value: "PHOTOGRAPHER", label: "Photographer", icon: "📷" },
+  { value: "VIDEOGRAPHER", label: "Videographer", icon: "🎥" },
+  { value: "DJ", label: "DJ", icon: "🎵" },
+  { value: "CATERER", label: "Caterer", icon: "🍽️" },
+  { value: "DECOR", label: "Decor", icon: "🎨" },
+  { value: "MUA", label: "Makeup Artist", icon: "💄" },
+  { value: "OTHER", label: "Other", icon: "✨" },
 ]
 
 export default function VendorsPage() {
@@ -139,165 +155,279 @@ export default function VendorsPage() {
     }
   }
 
+  const getVendorType = (type: string) => {
+    return VENDOR_TYPES.find((t) => t.value === type) || { label: type, icon: "✨" }
+  }
+
   if (loading || !session) {
     return (
-      <div className="min-h-screen bg-gray-50">
-        <div className="container p-6">Loading...</div>
+      <div className="min-h-screen bg-background">
+        <div className="flex items-center justify-center h-screen">
+          <div className="animate-pulse text-muted-foreground">Loading...</div>
+        </div>
       </div>
     )
   }
 
+  // Vendor Form Component
+  const VendorForm = () => (
+    <form onSubmit={handleSubmit} className="space-y-5">
+      <div>
+        <Label htmlFor="vendorType" className="text-sm font-medium">Vendor Type</Label>
+        <Select value={formType} onValueChange={setFormType}>
+          <SelectTrigger className="mt-1.5 h-12 rounded-xl">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            {VENDOR_TYPES.map((type) => (
+              <SelectItem key={type.value} value={type.value}>
+                <span className="flex items-center gap-2">
+                  <span>{type.icon}</span>
+                  {type.label}
+                </span>
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </div>
+
+      <div>
+        <Label htmlFor="companyName" className="text-sm font-medium">Company Name</Label>
+        <div className="relative mt-1.5">
+          <Building2 className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          <Input
+            id="companyName"
+            value={formCompanyName}
+            onChange={(e) => setFormCompanyName(e.target.value)}
+            placeholder="Enter company name"
+            className="h-12 pl-10 rounded-xl"
+            required
+          />
+        </div>
+      </div>
+
+      <div>
+        <Label htmlFor="contactName" className="text-sm font-medium">Contact Person</Label>
+        <div className="relative mt-1.5">
+          <User className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          <Input
+            id="contactName"
+            value={formContactName}
+            onChange={(e) => setFormContactName(e.target.value)}
+            placeholder="Enter contact name"
+            className="h-12 pl-10 rounded-xl"
+            required
+          />
+        </div>
+      </div>
+
+      <div className="grid grid-cols-2 gap-3">
+        <div>
+          <Label htmlFor="phone" className="text-sm font-medium">Phone</Label>
+          <div className="relative mt-1.5">
+            <Phone className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Input
+              id="phone"
+              type="tel"
+              value={formPhone}
+              onChange={(e) => setFormPhone(e.target.value)}
+              placeholder="Phone"
+              className="h-12 pl-10 rounded-xl"
+            />
+          </div>
+        </div>
+        <div>
+          <Label htmlFor="email" className="text-sm font-medium">Email</Label>
+          <div className="relative mt-1.5">
+            <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Input
+              id="email"
+              type="email"
+              value={formEmail}
+              onChange={(e) => setFormEmail(e.target.value)}
+              placeholder="Email"
+              className="h-12 pl-10 rounded-xl"
+            />
+          </div>
+        </div>
+      </div>
+
+      <div>
+        <Label htmlFor="notes" className="text-sm font-medium">Notes</Label>
+        <Textarea
+          id="notes"
+          value={formNotes}
+          onChange={(e) => setFormNotes(e.target.value)}
+          placeholder="Any notes about this vendor..."
+          className="mt-1.5 rounded-xl resize-none"
+          rows={3}
+        />
+      </div>
+
+      <Button type="submit" className="w-full h-12 rounded-xl">
+        {editingVendor ? "Update Vendor" : "Add Vendor"}
+      </Button>
+    </form>
+  )
+
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-background">
       <Nav userName={session.user.name} userRole={session.user.role} />
 
-      <div className="container mx-auto p-6">
-        <div className="flex justify-between items-center mb-6">
+      <div className="container mx-auto px-4 py-6 max-w-4xl">
+        {/* Header */}
+        <div className="flex items-center justify-between mb-6">
           <div>
-            <h1 className="text-3xl font-bold">Vendors</h1>
-            <p className="text-muted-foreground">Manage your wedding vendors</p>
+            <h1 className="text-2xl md:text-3xl font-bold">Vendors</h1>
+            <p className="text-sm text-muted-foreground mt-0.5">Manage your wedding vendors</p>
           </div>
-          <Dialog
-            open={showAddVendor}
-            onOpenChange={(open) => {
-              setShowAddVendor(open)
-              if (!open) resetForm()
-            }}
-          >
-            <DialogTrigger asChild>
-              <Button>+ Add Vendor</Button>
-            </DialogTrigger>
-            <DialogContent>
-              <DialogHeader>
-                <DialogTitle>{editingVendor ? "Edit Vendor" : "Add Vendor"}</DialogTitle>
-              </DialogHeader>
-              <form onSubmit={handleSubmit} className="space-y-4">
-                <div>
-                  <Label htmlFor="vendorType">Vendor Type</Label>
-                  <Select value={formType} onValueChange={setFormType}>
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {VENDOR_TYPES.map((type) => (
-                        <SelectItem key={type.value} value={type.value}>
-                          {type.label}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+
+          {/* Mobile: Bottom Sheet */}
+          <div className="md:hidden">
+            <Sheet
+              open={showAddVendor}
+              onOpenChange={(open) => {
+                setShowAddVendor(open)
+                if (!open) resetForm()
+              }}
+            >
+              <SheetTrigger asChild>
+                <Button size="sm" className="rounded-full gap-1.5">
+                  <Plus className="h-4 w-4" />
+                  Add
+                </Button>
+              </SheetTrigger>
+              <SheetContent side="bottom" className="h-[90vh] rounded-t-3xl px-6 pb-8 overflow-y-auto safe-bottom">
+                <div className="mx-auto w-12 h-1.5 bg-muted rounded-full mb-6 mt-2" />
+                <SheetHeader className="text-left pb-4">
+                  <SheetTitle className="text-xl">
+                    {editingVendor ? "Edit Vendor" : "Add Vendor"}
+                  </SheetTitle>
+                </SheetHeader>
+                <VendorForm />
+              </SheetContent>
+            </Sheet>
+          </div>
+
+          {/* Desktop: Dialog */}
+          <div className="hidden md:block">
+            <Dialog
+              open={showAddVendor}
+              onOpenChange={(open) => {
+                setShowAddVendor(open)
+                if (!open) resetForm()
+              }}
+            >
+              <DialogTrigger asChild>
+                <Button className="gap-2 rounded-full">
+                  <Plus className="h-4 w-4" />
+                  Add Vendor
+                </Button>
+              </DialogTrigger>
+              <DialogContent className="sm:max-w-md">
+                <DialogHeader>
+                  <DialogTitle>{editingVendor ? "Edit Vendor" : "Add Vendor"}</DialogTitle>
+                </DialogHeader>
+                <div className="pt-4">
+                  <VendorForm />
                 </div>
-                <div>
-                  <Label htmlFor="companyName">Company Name</Label>
-                  <Input
-                    id="companyName"
-                    value={formCompanyName}
-                    onChange={(e) => setFormCompanyName(e.target.value)}
-                    required
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="contactName">Contact Person</Label>
-                  <Input
-                    id="contactName"
-                    value={formContactName}
-                    onChange={(e) => setFormContactName(e.target.value)}
-                    required
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="phone">Phone</Label>
-                  <Input
-                    id="phone"
-                    type="tel"
-                    value={formPhone}
-                    onChange={(e) => setFormPhone(e.target.value)}
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="email">Email</Label>
-                  <Input
-                    id="email"
-                    type="email"
-                    value={formEmail}
-                    onChange={(e) => setFormEmail(e.target.value)}
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="notes">Notes</Label>
-                  <Textarea
-                    id="notes"
-                    value={formNotes}
-                    onChange={(e) => setFormNotes(e.target.value)}
-                    placeholder="Any notes about this vendor..."
-                  />
-                </div>
-                <DialogFooter>
-                  <Button type="submit">{editingVendor ? "Update" : "Add"} Vendor</Button>
-                </DialogFooter>
-              </form>
-            </DialogContent>
-          </Dialog>
+              </DialogContent>
+            </Dialog>
+          </div>
         </div>
 
         {vendors.length === 0 ? (
-          <Card>
-            <CardContent className="py-10 text-center">
+          <Card className="border-dashed">
+            <CardContent className="py-16 text-center">
+              <Users className="h-12 w-12 mx-auto text-muted-foreground/50 mb-4" />
               <p className="text-muted-foreground mb-4">
                 No vendors added yet. Add your first vendor to get started.
               </p>
-              <Button onClick={() => setShowAddVendor(true)}>Add Vendor</Button>
+              <Button onClick={() => setShowAddVendor(true)} className="rounded-full">
+                <Plus className="h-4 w-4 mr-2" />
+                Add Vendor
+              </Button>
             </CardContent>
           </Card>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {vendors.map((vendor) => (
-              <Card key={vendor.id}>
-                <CardHeader>
-                  <div className="flex justify-between items-start">
-                    <div>
-                      <CardTitle className="text-lg">{vendor.companyName}</CardTitle>
-                      <Badge variant="secondary" className="mt-1">
-                        {VENDOR_TYPES.find((t) => t.value === vendor.type)?.label || vendor.type}
-                      </Badge>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            {vendors.map((vendor) => {
+              const vendorType = getVendorType(vendor.type)
+              return (
+                <Card key={vendor.id} className="overflow-hidden hover:shadow-md transition-shadow">
+                  <CardContent className="p-4">
+                    <div className="flex items-start gap-3">
+                      {/* Icon */}
+                      <div className="flex-shrink-0 w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center text-2xl">
+                        {vendorType.icon}
+                      </div>
+
+                      {/* Content */}
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-start justify-between gap-2">
+                          <div className="min-w-0">
+                            <h3 className="font-semibold truncate">{vendor.companyName}</h3>
+                            <Badge variant="secondary" className="text-xs rounded-full mt-1">
+                              {vendorType.label}
+                            </Badge>
+                          </div>
+
+                          {/* Actions */}
+                          <div className="flex items-center gap-1 flex-shrink-0">
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="h-8 w-8 p-0 rounded-full"
+                              onClick={() => handleEdit(vendor)}
+                            >
+                              <Pencil className="h-4 w-4" />
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="h-8 w-8 p-0 text-muted-foreground hover:text-destructive rounded-full"
+                              onClick={() => handleDelete(vendor.id)}
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        </div>
+
+                        {/* Contact Info */}
+                        <div className="mt-3 space-y-1.5 text-sm">
+                          <div className="flex items-center gap-2 text-muted-foreground">
+                            <User className="h-3.5 w-3.5" />
+                            <span className="truncate">{vendor.contactName}</span>
+                          </div>
+                          {vendor.phone && (
+                            <div className="flex items-center gap-2 text-muted-foreground">
+                              <Phone className="h-3.5 w-3.5" />
+                              <a href={`tel:${vendor.phone}`} className="hover:text-primary">
+                                {vendor.phone}
+                              </a>
+                            </div>
+                          )}
+                          {vendor.email && (
+                            <div className="flex items-center gap-2 text-muted-foreground">
+                              <Mail className="h-3.5 w-3.5" />
+                              <a href={`mailto:${vendor.email}`} className="truncate hover:text-primary">
+                                {vendor.email}
+                              </a>
+                            </div>
+                          )}
+                        </div>
+
+                        {vendor.notes && (
+                          <p className="text-xs text-muted-foreground mt-3 pt-2 border-t border-dashed line-clamp-2">
+                            {vendor.notes}
+                          </p>
+                        )}
+                      </div>
                     </div>
-                  </div>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-2 text-sm">
-                    <p>
-                      <span className="text-muted-foreground">Contact:</span> {vendor.contactName}
-                    </p>
-                    {vendor.phone && (
-                      <p>
-                        <span className="text-muted-foreground">Phone:</span> {vendor.phone}
-                      </p>
-                    )}
-                    {vendor.email && (
-                      <p>
-                        <span className="text-muted-foreground">Email:</span> {vendor.email}
-                      </p>
-                    )}
-                    {vendor.notes && (
-                      <p className="text-muted-foreground text-xs mt-2">{vendor.notes}</p>
-                    )}
-                  </div>
-                  <div className="flex gap-2 mt-4">
-                    <Button variant="outline" size="sm" onClick={() => handleEdit(vendor)}>
-                      Edit
-                    </Button>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="text-red-600"
-                      onClick={() => handleDelete(vendor.id)}
-                    >
-                      Delete
-                    </Button>
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
+                  </CardContent>
+                </Card>
+              )
+            })}
           </div>
         )}
       </div>

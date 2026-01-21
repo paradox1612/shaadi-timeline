@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react"
 import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Card, CardContent } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import {
@@ -11,11 +11,27 @@ import {
   DialogHeader,
   DialogTitle,
   DialogTrigger,
-  DialogFooter,
 } from "@/components/ui/dialog"
+import {
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+  SheetTrigger,
+} from "@/components/ui/sheet"
 import { Badge } from "@/components/ui/badge"
 import { Nav } from "@/components/nav"
 import { useSession } from "next-auth/react"
+import { cn } from "@/lib/utils"
+import {
+  Plus,
+  Link2,
+  Copy,
+  Check,
+  Trash2,
+  Clock,
+  ExternalLink,
+} from "lucide-react"
 
 interface EventDay {
   id: string
@@ -113,145 +129,241 @@ export default function GuestLinksPage() {
 
   if (loading || !session) {
     return (
-      <div className="min-h-screen bg-gray-50">
-        <div className="container p-6">Loading...</div>
+      <div className="min-h-screen bg-background">
+        <div className="flex items-center justify-center h-screen">
+          <div className="animate-pulse text-muted-foreground">Loading...</div>
+        </div>
       </div>
     )
   }
 
+  // Link Form Component
+  const LinkForm = () => (
+    <form onSubmit={handleSubmit} className="space-y-5">
+      <div>
+        <Label htmlFor="linkLabel" className="text-sm font-medium">Link Name</Label>
+        <Input
+          id="linkLabel"
+          value={formLabel}
+          onChange={(e) => setFormLabel(e.target.value)}
+          placeholder="e.g., Groom's Family, Bride's Friends"
+          className="mt-1.5 h-12 rounded-xl"
+          required
+        />
+      </div>
+
+      <div>
+        <Label htmlFor="expiresAt" className="text-sm font-medium">Expires At (optional)</Label>
+        <Input
+          id="expiresAt"
+          type="datetime-local"
+          value={formExpiresAt}
+          onChange={(e) => setFormExpiresAt(e.target.value)}
+          className="mt-1.5 h-12 rounded-xl"
+        />
+      </div>
+
+      <div>
+        <Label className="text-sm font-medium">Select Event Days</Label>
+        <p className="text-xs text-muted-foreground mb-3">
+          Choose which days guests can view with this link
+        </p>
+        {eventDays.length > 0 ? (
+          <div className="flex flex-wrap gap-2">
+            {eventDays.map((day) => (
+              <Badge
+                key={day.id}
+                variant={selectedDays.includes(day.id) ? "default" : "outline"}
+                className={cn(
+                  "cursor-pointer py-2 px-3 rounded-full transition-all",
+                  selectedDays.includes(day.id) && "shadow-sm"
+                )}
+                onClick={() => toggleDay(day.id)}
+              >
+                {day.label}
+              </Badge>
+            ))}
+          </div>
+        ) : (
+          <p className="text-sm text-muted-foreground p-3 bg-muted rounded-xl">
+            No event days created yet. Add event days in the Timeline section first.
+          </p>
+        )}
+      </div>
+
+      <Button
+        type="submit"
+        className="w-full h-12 rounded-xl"
+        disabled={eventDays.length === 0 || selectedDays.length === 0}
+      >
+        Create Link
+      </Button>
+    </form>
+  )
+
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-background">
       <Nav userName={session.user.name} userRole={session.user.role} />
 
-      <div className="container mx-auto p-6">
-        <div className="flex justify-between items-center mb-6">
+      <div className="container mx-auto px-4 py-6 max-w-4xl">
+        {/* Header */}
+        <div className="flex items-center justify-between mb-6">
           <div>
-            <h1 className="text-3xl font-bold">Guest Links</h1>
-            <p className="text-muted-foreground">
-              Create shareable links for guests to view the schedule
-            </p>
+            <h1 className="text-2xl md:text-3xl font-bold">Guest Links</h1>
+            <p className="text-sm text-muted-foreground mt-0.5">Share schedules with your guests</p>
           </div>
-          <Dialog
-            open={showAddLink}
-            onOpenChange={(open) => {
-              setShowAddLink(open)
-              if (!open) resetForm()
-            }}
-          >
-            <DialogTrigger asChild>
-              <Button>+ Create Link</Button>
-            </DialogTrigger>
-            <DialogContent>
-              <DialogHeader>
-                <DialogTitle>Create Guest Link</DialogTitle>
-              </DialogHeader>
-              <form onSubmit={handleSubmit} className="space-y-4">
-                <div>
-                  <Label htmlFor="linkLabel">Link Name</Label>
-                  <Input
-                    id="linkLabel"
-                    value={formLabel}
-                    onChange={(e) => setFormLabel(e.target.value)}
-                    placeholder="e.g., Groom's Family, Bride's Friends"
-                    required
-                  />
+
+          {/* Mobile: Bottom Sheet */}
+          <div className="md:hidden">
+            <Sheet
+              open={showAddLink}
+              onOpenChange={(open) => {
+                setShowAddLink(open)
+                if (!open) resetForm()
+              }}
+            >
+              <SheetTrigger asChild>
+                <Button size="sm" className="rounded-full gap-1.5">
+                  <Plus className="h-4 w-4" />
+                  Create
+                </Button>
+              </SheetTrigger>
+              <SheetContent side="bottom" className="h-auto max-h-[85vh] rounded-t-3xl px-6 pb-8 safe-bottom">
+                <div className="mx-auto w-12 h-1.5 bg-muted rounded-full mb-6 mt-2" />
+                <SheetHeader className="text-left pb-4">
+                  <SheetTitle className="text-xl">Create Guest Link</SheetTitle>
+                </SheetHeader>
+                <LinkForm />
+              </SheetContent>
+            </Sheet>
+          </div>
+
+          {/* Desktop: Dialog */}
+          <div className="hidden md:block">
+            <Dialog
+              open={showAddLink}
+              onOpenChange={(open) => {
+                setShowAddLink(open)
+                if (!open) resetForm()
+              }}
+            >
+              <DialogTrigger asChild>
+                <Button className="gap-2 rounded-full">
+                  <Plus className="h-4 w-4" />
+                  Create Link
+                </Button>
+              </DialogTrigger>
+              <DialogContent className="sm:max-w-md">
+                <DialogHeader>
+                  <DialogTitle>Create Guest Link</DialogTitle>
+                </DialogHeader>
+                <div className="pt-4">
+                  <LinkForm />
                 </div>
-                <div>
-                  <Label htmlFor="expiresAt">Expires At (optional)</Label>
-                  <Input
-                    id="expiresAt"
-                    type="datetime-local"
-                    value={formExpiresAt}
-                    onChange={(e) => setFormExpiresAt(e.target.value)}
-                  />
-                </div>
-                <div>
-                  <Label>Select Event Days</Label>
-                  <p className="text-xs text-muted-foreground mb-2">
-                    Choose which days guests can view with this link
-                  </p>
-                  <div className="flex flex-wrap gap-2">
-                    {eventDays.map((day) => (
-                      <Badge
-                        key={day.id}
-                        variant={selectedDays.includes(day.id) ? "default" : "outline"}
-                        className="cursor-pointer"
-                        onClick={() => toggleDay(day.id)}
-                      >
-                        {day.label}
-                      </Badge>
-                    ))}
-                  </div>
-                  {eventDays.length === 0 && (
-                    <p className="text-sm text-muted-foreground mt-2">
-                      No event days created yet. Add event days in the Timeline section first.
-                    </p>
-                  )}
-                </div>
-                <DialogFooter>
-                  <Button type="submit" disabled={eventDays.length === 0}>
-                    Create Link
-                  </Button>
-                </DialogFooter>
-              </form>
-            </DialogContent>
-          </Dialog>
+              </DialogContent>
+            </Dialog>
+          </div>
         </div>
 
         {links.length === 0 ? (
-          <Card>
-            <CardContent className="py-10 text-center">
+          <Card className="border-dashed">
+            <CardContent className="py-16 text-center">
+              <Link2 className="h-12 w-12 mx-auto text-muted-foreground/50 mb-4" />
               <p className="text-muted-foreground mb-4">
                 No guest links created yet. Create a link to share schedules with your guests.
               </p>
-              <Button onClick={() => setShowAddLink(true)}>Create Guest Link</Button>
+              <Button onClick={() => setShowAddLink(true)} className="rounded-full">
+                <Plus className="h-4 w-4 mr-2" />
+                Create Guest Link
+              </Button>
             </CardContent>
           </Card>
         ) : (
-          <div className="space-y-4">
+          <div className="space-y-3">
             {links.map((link) => (
-              <Card key={link.id}>
-                <CardHeader>
-                  <div className="flex justify-between items-start">
-                    <div>
-                      <CardTitle className="text-lg">{link.label}</CardTitle>
-                      <p className="text-xs text-muted-foreground">
-                        Created {new Date(link.createdAt).toLocaleDateString()}
-                        {link.expiresAt &&
-                          ` • Expires ${new Date(link.expiresAt).toLocaleDateString()}`}
-                      </p>
+              <Card key={link.id} className="overflow-hidden hover:shadow-md transition-shadow">
+                <CardContent className="p-4">
+                  <div className="flex items-start gap-3">
+                    {/* Icon */}
+                    <div className="flex-shrink-0 w-11 h-11 rounded-xl bg-primary/10 flex items-center justify-center">
+                      <Link2 className="h-5 w-5 text-primary" />
                     </div>
-                    <div className="flex gap-2">
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => copyLink(link)}
-                      >
-                        {copiedId === link.id ? "Copied!" : "Copy Link"}
-                      </Button>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        className="text-red-600"
-                        onClick={() => handleDelete(link.id)}
-                      >
-                        Delete
-                      </Button>
+
+                    {/* Content */}
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-start justify-between gap-2">
+                        <div className="min-w-0">
+                          <h3 className="font-semibold">{link.label}</h3>
+                          <div className="flex items-center gap-3 text-xs text-muted-foreground mt-1">
+                            <span className="flex items-center gap-1">
+                              <Clock className="h-3 w-3" />
+                              {new Date(link.createdAt).toLocaleDateString()}
+                            </span>
+                            {link.expiresAt && (
+                              <span className="text-amber-600">
+                                Expires {new Date(link.expiresAt).toLocaleDateString()}
+                              </span>
+                            )}
+                          </div>
+                        </div>
+
+                        {/* Actions */}
+                        <div className="flex items-center gap-1 flex-shrink-0">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="h-9 gap-1.5 rounded-full"
+                            onClick={() => copyLink(link)}
+                          >
+                            {copiedId === link.id ? (
+                              <>
+                                <Check className="h-4 w-4 text-green-600" />
+                                <span className="hidden sm:inline">Copied</span>
+                              </>
+                            ) : (
+                              <>
+                                <Copy className="h-4 w-4" />
+                                <span className="hidden sm:inline">Copy</span>
+                              </>
+                            )}
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="h-9 w-9 p-0 text-muted-foreground hover:text-destructive rounded-full"
+                            onClick={() => handleDelete(link.id)}
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      </div>
+
+                      {/* Days included */}
+                      <div className="flex flex-wrap items-center gap-2 mt-3">
+                        <span className="text-xs text-muted-foreground">Days:</span>
+                        {link.allowedEventDays.map((aed) => (
+                          <Badge key={aed.eventDay.id} variant="secondary" className="text-xs rounded-full">
+                            {aed.eventDay.label}
+                          </Badge>
+                        ))}
+                      </div>
+
+                      {/* Link preview */}
+                      <div className="mt-3 p-2.5 bg-muted/50 rounded-xl flex items-center gap-2">
+                        <code className="text-xs text-muted-foreground flex-1 truncate">
+                          {typeof window !== "undefined" && `${window.location.origin}/guest/${link.token}`}
+                        </code>
+                        <a
+                          href={`/guest/${link.token}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-primary hover:text-primary/80"
+                        >
+                          <ExternalLink className="h-4 w-4" />
+                        </a>
+                      </div>
                     </div>
                   </div>
-                </CardHeader>
-                <CardContent>
-                  <div className="flex flex-wrap gap-2">
-                    <span className="text-sm text-muted-foreground">Days included:</span>
-                    {link.allowedEventDays.map((aed) => (
-                      <Badge key={aed.eventDay.id} variant="secondary">
-                        {aed.eventDay.label}
-                      </Badge>
-                    ))}
-                  </div>
-                  <p className="text-xs text-muted-foreground mt-3 font-mono bg-gray-100 p-2 rounded">
-                    {typeof window !== "undefined" && `${window.location.origin}/guest/${link.token}`}
-                  </p>
                 </CardContent>
               </Card>
             ))}

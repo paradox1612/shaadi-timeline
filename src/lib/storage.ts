@@ -7,6 +7,7 @@ const AWS_REGION = process.env.AWS_REGION
 const AWS_ACCESS_KEY_ID = process.env.AWS_ACCESS_KEY_ID
 const AWS_SECRET_ACCESS_KEY = process.env.AWS_SECRET_ACCESS_KEY
 const AWS_ENDPOINT = process.env.AWS_ENDPOINT
+const AWS_PUBLIC_ENDPOINT = process.env.AWS_PUBLIC_ENDPOINT
 
 const isS3Configured =
   S3_BUCKET_NAME && AWS_REGION && AWS_ACCESS_KEY_ID && AWS_SECRET_ACCESS_KEY
@@ -42,21 +43,17 @@ export async function uploadFile(
 
       await s3Client.send(command)
 
-      // Construct URL
+      // Construct public URL for browser access
+      if (AWS_PUBLIC_ENDPOINT) {
+        // Use public endpoint for R2/MinIO (browser-accessible URL)
+        return `${AWS_PUBLIC_ENDPOINT}/${fileName}`
+      }
+
       if (AWS_ENDPOINT) {
-        // For MinIO/Local S3
-        // If running in Docker, AWS_ENDPOINT might be 'http://minio:9000', but browser needs localhost.
-        // However, usually we return a relative path or a public URL.
-        // For this local setup, we'll assume the endpoint is reachable (e.g. localhost:9000)
-        // OR we can proxy it. For simplicity, let's return the endpoint URL.
-        // Note: In a real docker-compose setup, browser access might need a different host than server access.
-        // But let's use the provided endpoint variable or fallback to a relative path if needed?
-        // Actually, if using MinIO locally, the image src needs to be reachable by the browser.
-        // If AWS_ENDPOINT is internal docker (http://minio:9000), browser can't see it.
-        // User should likely set a public URL var, but for now let's construct it assuming the ENDPOINT is public-facing if set.
+        // Fallback: use API endpoint (may not work if internal)
         return `${AWS_ENDPOINT}/${S3_BUCKET_NAME}/${fileName}`
       }
-      
+
       return `https://${S3_BUCKET_NAME}.s3.${AWS_REGION}.amazonaws.com/${fileName}`
     } catch (error) {
       console.error("Error uploading to S3:", error)

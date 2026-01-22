@@ -39,7 +39,23 @@ import {
   Trash2,
   Building2,
   User,
+  FileText,
+  DollarSign,
+  ChevronDown,
+  ChevronUp,
 } from "lucide-react"
+
+interface Quote {
+  id: string
+  title: string
+  amountTotal: number
+  currency: string
+  notes: string | null
+  status: "DRAFT" | "SENT" | "ACCEPTED" | "REJECTED"
+  totalPaid: number
+  remaining: number
+  createdAt: string
+}
 
 interface Vendor {
   id: string
@@ -50,6 +66,28 @@ interface Vendor {
   email: string | null
   notes: string | null
   user: { id: string; name: string; email: string } | null
+  quotes?: Quote[]
+}
+
+const QUOTE_STATUS_LABELS: Record<Quote["status"], string> = {
+  DRAFT: "Draft",
+  SENT: "Sent",
+  ACCEPTED: "Accepted",
+  REJECTED: "Rejected",
+}
+
+const QUOTE_STATUS_COLORS: Record<Quote["status"], string> = {
+  DRAFT: "bg-gray-100 text-gray-800",
+  SENT: "bg-blue-100 text-blue-800",
+  ACCEPTED: "bg-green-100 text-green-800",
+  REJECTED: "bg-red-100 text-red-800",
+}
+
+function formatCurrency(amount: number, currency = "USD"): string {
+  return new Intl.NumberFormat("en-US", {
+    style: "currency",
+    currency,
+  }).format(amount)
 }
 
 const VENDOR_TYPES = [
@@ -65,9 +103,22 @@ const VENDOR_TYPES = [
 export default function VendorsPage() {
   const { data: session } = useSession()
   const [vendors, setVendors] = useState<Vendor[]>([])
+  const [quotes, setQuotes] = useState<(Quote & { vendorId: string })[]>([])
   const [loading, setLoading] = useState(true)
   const [showAddVendor, setShowAddVendor] = useState(false)
   const [editingVendor, setEditingVendor] = useState<Vendor | null>(null)
+  const [expandedVendors, setExpandedVendors] = useState<Set<string>>(new Set())
+
+  // Quote dialog state
+  const [showQuoteDialog, setShowQuoteDialog] = useState(false)
+  const [editingQuote, setEditingQuote] = useState<(Quote & { vendorId: string }) | null>(null)
+  const [quoteVendorId, setQuoteVendorId] = useState<string>("")
+
+  // Quote form state
+  const [quoteTitle, setQuoteTitle] = useState("")
+  const [quoteAmount, setQuoteAmount] = useState("")
+  const [quoteStatus, setQuoteStatus] = useState<Quote["status"]>("DRAFT")
+  const [quoteNotes, setQuoteNotes] = useState("")
 
   // Form state
   const [formType, setFormType] = useState("PHOTOGRAPHER")
@@ -77,13 +128,36 @@ export default function VendorsPage() {
   const [formEmail, setFormEmail] = useState("")
   const [formNotes, setFormNotes] = useState("")
 
-  useEffect(() => {
-    fetch("/api/vendors")
-      .then((res) => res.json())
-      .then((data) => {
+  const fetchData = async () => {
+    try {
+      const [vendorsRes, quotesRes] = await Promise.all([
+        fetch("/api/vendors"),
+        fetch("/api/quotes"),
+      ])
+      if (vendorsRes.ok) {
+        const data = await vendorsRes.json()
         setVendors(Array.isArray(data) ? data : [])
-        setLoading(false)
-      })
+      }
+      if (quotesRes.ok) {
+        const data = await quotesRes.json()
+        setQuotes(
+          Array.isArray(data)
+            ? data.map((q: Quote & { vendor: { id: string } }) => ({
+                ...q,
+                vendorId: q.vendor.id,
+              }))
+            : []
+        )
+      }
+    } catch (error) {
+      console.error("Failed to fetch data:", error)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  useEffect(() => {
+    fetchData()
   }, [])
 
   const resetForm = () => {
@@ -94,6 +168,95 @@ export default function VendorsPage() {
     setFormEmail("")
     setFormNotes("")
     setEditingVendor(null)
+  }
+
+  const resetQuoteForm = () => {
+    setQuoteTitle("")
+    setQuoteAmount("")
+    setQuoteStatus("DRAFT")
+    setQuoteNotes("")
+    setEditingQuote(null)
+    setQuoteVendorId("")
+  }
+
+  const openAddQuoteDialog = (vendorId: string) => {
+    resetQuoteForm()
+    setQuoteVendorId(vendorId)
+    setShowQuoteDialog(true)
+  }
+
+  const openEditQuoteDialog = (quote: Quote & { vendorId: string }) => {
+    setEditingQuote(quote)
+    setQuoteVendorId(quote.vendorId)
+    setQuoteTitle(quote.title)
+    setQuoteAmount(quote.amountTotal.toString())
+    setQuoteStatus(quote.status)
+    setQuoteNotes(quote.notes || "")
+    setShowQuoteDialog(true)
+  }
+
+  const handleQuoteSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    const payload = {
+      vendorId: quoteVendorId,
+      title: quoteTitle,
+      amountTotal: parseFloat(quoteAmount),
+      status: quoteStatus,
+      notes: quoteNotes || null,
+    }
+
+    try {
+      const res = await fetch(
+        editingQuote ? `/api/quotes/${editingQuote.id}` : "/api/quotes",
+        {
+          method: editingQuote ? "PATCH" : "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload),
+        }
+      )
+      if (res.ok) {
+        setShowQuoteDialog(false)
+        resetQuoteForm()
+        fetchData()
+      } else {
+        const data = await res.json()
+        alert(data.error || "Failed to save quote")
+      }
+    } catch (error) {
+      console.error("Failed to save quote:", error)
+      alert("Failed to save quote")
+    }
+  }
+
+  const handleDeleteQuote = async (quoteId: string) => {
+    if (!confirm("Are you sure you want to delete this quote?")) return
+    try {
+      const res = await fetch(`/api/quotes/${quoteId}`, { method: "DELETE" })
+      if (res.ok) {
+        fetchData()
+      } else {
+        const data = await res.json()
+        alert(data.error || "Failed to delete quote")
+      }
+    } catch (error) {
+      console.error("Failed to delete quote:", error)
+    }
+  }
+
+  const toggleVendorExpanded = (vendorId: string) => {
+    setExpandedVendors((prev) => {
+      const next = new Set(prev)
+      if (next.has(vendorId)) {
+        next.delete(vendorId)
+      } else {
+        next.add(vendorId)
+      }
+      return next
+    })
+  }
+
+  const getVendorQuotes = (vendorId: string) => {
+    return quotes.filter((q) => q.vendorId === vendorId)
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -169,8 +332,7 @@ export default function VendorsPage() {
     )
   }
 
-  // Vendor Form Component
-  const VendorForm = () => (
+  const vendorFormContent = (
     <form onSubmit={handleSubmit} className="space-y-5">
       <div>
         <Label htmlFor="vendorType" className="text-sm font-medium">Vendor Type</Label>
@@ -304,7 +466,7 @@ export default function VendorsPage() {
                     {editingVendor ? "Edit Vendor" : "Add Vendor"}
                   </SheetTitle>
                 </SheetHeader>
-                <VendorForm />
+                {vendorFormContent}
               </SheetContent>
             </Sheet>
           </div>
@@ -329,12 +491,107 @@ export default function VendorsPage() {
                   <DialogTitle>{editingVendor ? "Edit Vendor" : "Add Vendor"}</DialogTitle>
                 </DialogHeader>
                 <div className="pt-4">
-                  <VendorForm />
+                  {vendorFormContent}
                 </div>
               </DialogContent>
             </Dialog>
           </div>
         </div>
+
+        {/* Quote Dialog */}
+        <Dialog
+          open={showQuoteDialog}
+          onOpenChange={(open) => {
+            setShowQuoteDialog(open)
+            if (!open) resetQuoteForm()
+          }}
+        >
+          <DialogContent className="sm:max-w-md">
+            <DialogHeader>
+              <DialogTitle>{editingQuote ? "Edit Quote" : "Add Quote"}</DialogTitle>
+            </DialogHeader>
+            <form onSubmit={handleQuoteSubmit} className="space-y-4 pt-4">
+              <div>
+                <Label htmlFor="quoteTitle" className="text-sm font-medium">Title *</Label>
+                <div className="relative mt-1.5">
+                  <FileText className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                  <Input
+                    id="quoteTitle"
+                    value={quoteTitle}
+                    onChange={(e) => setQuoteTitle(e.target.value)}
+                    placeholder="e.g., Photography Package A"
+                    className="h-12 pl-10 rounded-xl"
+                    required
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <Label htmlFor="quoteAmount" className="text-sm font-medium">Amount *</Label>
+                  <div className="relative mt-1.5">
+                    <DollarSign className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                    <Input
+                      id="quoteAmount"
+                      type="number"
+                      step="0.01"
+                      min="0"
+                      value={quoteAmount}
+                      onChange={(e) => setQuoteAmount(e.target.value)}
+                      placeholder="0.00"
+                      className="h-12 pl-10 rounded-xl"
+                      required
+                    />
+                  </div>
+                </div>
+                <div>
+                  <Label htmlFor="quoteStatus" className="text-sm font-medium">Status</Label>
+                  <Select value={quoteStatus} onValueChange={(v) => setQuoteStatus(v as Quote["status"])}>
+                    <SelectTrigger className="mt-1.5 h-12 rounded-xl">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {Object.entries(QUOTE_STATUS_LABELS).map(([value, label]) => (
+                        <SelectItem key={value} value={value}>
+                          {label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+
+              <div>
+                <Label htmlFor="quoteNotes" className="text-sm font-medium">Notes</Label>
+                <Textarea
+                  id="quoteNotes"
+                  value={quoteNotes}
+                  onChange={(e) => setQuoteNotes(e.target.value)}
+                  placeholder="Any notes about this quote..."
+                  className="mt-1.5 rounded-xl resize-none"
+                  rows={3}
+                />
+              </div>
+
+              <div className="flex gap-2 pt-2">
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="flex-1 h-12 rounded-xl"
+                  onClick={() => {
+                    setShowQuoteDialog(false)
+                    resetQuoteForm()
+                  }}
+                >
+                  Cancel
+                </Button>
+                <Button type="submit" className="flex-1 h-12 rounded-xl">
+                  {editingQuote ? "Update" : "Add"} Quote
+                </Button>
+              </div>
+            </form>
+          </DialogContent>
+        </Dialog>
 
         {vendors.length === 0 ? (
           <Card className="border-dashed">
@@ -353,6 +610,8 @@ export default function VendorsPage() {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
             {vendors.map((vendor) => {
               const vendorType = getVendorType(vendor.type)
+              const vendorQuotes = getVendorQuotes(vendor.id)
+              const isExpanded = expandedVendors.has(vendor.id)
               return (
                 <Card key={vendor.id} className="overflow-hidden hover:shadow-md transition-shadow">
                   <CardContent className="p-4">
@@ -422,6 +681,89 @@ export default function VendorsPage() {
                             {vendor.notes}
                           </p>
                         )}
+
+                        {/* Quotes Section */}
+                        <div className="mt-3 pt-3 border-t">
+                          <div className="flex items-center justify-between">
+                            <button
+                              type="button"
+                              onClick={() => toggleVendorExpanded(vendor.id)}
+                              className="flex items-center gap-1.5 text-sm font-medium text-muted-foreground hover:text-foreground"
+                            >
+                              <FileText className="h-3.5 w-3.5" />
+                              Quotes ({vendorQuotes.length})
+                              {vendorQuotes.length > 0 && (
+                                isExpanded ? (
+                                  <ChevronUp className="h-3.5 w-3.5" />
+                                ) : (
+                                  <ChevronDown className="h-3.5 w-3.5" />
+                                )
+                              )}
+                            </button>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="h-7 px-2 text-xs"
+                              onClick={() => openAddQuoteDialog(vendor.id)}
+                            >
+                              <Plus className="h-3 w-3 mr-1" />
+                              Add
+                            </Button>
+                          </div>
+
+                          {isExpanded && vendorQuotes.length > 0 && (
+                            <div className="mt-2 space-y-2">
+                              {vendorQuotes.map((quote) => (
+                                <div
+                                  key={quote.id}
+                                  className="p-2 rounded-lg bg-muted/50 text-sm"
+                                >
+                                  <div className="flex items-start justify-between gap-2">
+                                    <div className="flex-1 min-w-0">
+                                      <div className="flex items-center gap-2">
+                                        <span className="font-medium truncate">{quote.title}</span>
+                                        <Badge className={`text-xs ${QUOTE_STATUS_COLORS[quote.status]}`}>
+                                          {QUOTE_STATUS_LABELS[quote.status]}
+                                        </Badge>
+                                      </div>
+                                      <div className="text-muted-foreground mt-0.5">
+                                        {formatCurrency(quote.amountTotal, quote.currency)}
+                                        {quote.totalPaid > 0 && (
+                                          <span className="text-green-600 ml-2">
+                                            (Paid: {formatCurrency(quote.totalPaid, quote.currency)})
+                                          </span>
+                                        )}
+                                      </div>
+                                      {quote.notes && (
+                                        <p className="text-xs text-muted-foreground mt-1 line-clamp-1">
+                                          {quote.notes}
+                                        </p>
+                                      )}
+                                    </div>
+                                    <div className="flex items-center gap-1">
+                                      <Button
+                                        variant="ghost"
+                                        size="sm"
+                                        className="h-6 w-6 p-0"
+                                        onClick={() => openEditQuoteDialog(quote)}
+                                      >
+                                        <Pencil className="h-3 w-3" />
+                                      </Button>
+                                      <Button
+                                        variant="ghost"
+                                        size="sm"
+                                        className="h-6 w-6 p-0 text-muted-foreground hover:text-destructive"
+                                        onClick={() => handleDeleteQuote(quote.id)}
+                                      >
+                                        <Trash2 className="h-3 w-3" />
+                                      </Button>
+                                    </div>
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          )}
+                        </div>
                       </div>
                     </div>
                   </CardContent>

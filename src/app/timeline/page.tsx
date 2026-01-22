@@ -501,8 +501,7 @@ export default function TimelinePage() {
     )
   }
 
-  // Add Item Form Component (shared between mobile sheet and desktop dialog)
-  const AddItemForm = () => (
+  const addItemFormContent = (
     <form onSubmit={handleAddItem} className="space-y-5">
       <div>
         <Label htmlFor="itemTitle" className="text-sm font-medium">Event Title</Label>
@@ -802,7 +801,7 @@ export default function TimelinePage() {
                             <SheetHeader className="text-left pb-4">
                               <SheetTitle className="text-xl">Add Timeline Event</SheetTitle>
                             </SheetHeader>
-                            <AddItemForm />
+                            {addItemFormContent}
                           </SheetContent>
                         </Sheet>
                       </div>
@@ -821,7 +820,7 @@ export default function TimelinePage() {
                               <DialogTitle>Add Timeline Event</DialogTitle>
                             </DialogHeader>
                             <div className="pt-4">
-                              <AddItemForm />
+                              {addItemFormContent}
                             </div>
                           </DialogContent>
                         </Dialog>

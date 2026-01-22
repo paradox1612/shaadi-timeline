@@ -47,7 +47,8 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
           email: user.email,
           name: user.name,
           role: user.role,
-          vendorProfileId: user.vendorProfile?.id
+          vendorProfileId: user.vendorProfile?.id,
+          relationshipLabel: user.relationshipLabel
         }
       }
     })
@@ -57,6 +58,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
       if (user) {
         token.role = user.role as UserRole
         token.vendorProfileId = user.vendorProfileId as string | undefined
+        token.relationshipLabel = user.relationshipLabel as string | null | undefined
       }
       return token
     },
@@ -65,6 +67,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
         session.user.id = token.sub!
         session.user.role = token.role as UserRole
         session.user.vendorProfileId = token.vendorProfileId as string | undefined
+        session.user.relationshipLabel = token.relationshipLabel as string | null | undefined
       }
       return session
     }

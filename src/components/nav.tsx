@@ -15,11 +15,19 @@ interface NavProps {
 export function Nav({ userName, userRole }: NavProps) {
   const pathname = usePathname()
 
+  // Roles that can see all navigation items
+  const isInternalUser = ["BRIDE", "GROOM", "PLANNER", "BRIDE_PARENT", "GROOM_PARENT", "FAMILY_HELPER"].includes(userRole)
+  const isBrideOrGroom = userRole === "BRIDE" || userRole === "GROOM"
+  const isPlanner = userRole === "PLANNER"
+
+  // Build nav items based on role
   const navItems = [
     { href: "/dashboard", label: "Dashboard" },
+    { href: "/tasks", label: "Tasks" },
     { href: "/timeline", label: "Timeline" },
-    { href: "/vendors", label: "Vendors" },
-    { href: "/guest-links", label: "Guest Links" },
+    ...(isInternalUser ? [{ href: "/budget", label: "Budget" }] : []),
+    ...(isBrideOrGroom || isPlanner ? [{ href: "/vendors", label: "Vendors" }] : []),
+    ...(isBrideOrGroom || isPlanner ? [{ href: "/guest-links", label: "Guest Links" }] : []),
     { href: "/settings", label: "Settings" },
   ]
 

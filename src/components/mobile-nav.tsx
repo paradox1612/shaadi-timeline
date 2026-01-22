@@ -21,6 +21,8 @@ import {
   Settings,
   LogOut,
   ChevronRight,
+  CheckSquare,
+  Wallet,
 } from "lucide-react"
 import { useState } from "react"
 
@@ -33,11 +35,19 @@ export function MobileNav({ userName, userRole }: MobileNavProps) {
   const pathname = usePathname()
   const [open, setOpen] = useState(false)
 
+  // Roles that can see all navigation items
+  const isInternalUser = ["BRIDE", "GROOM", "PLANNER", "BRIDE_PARENT", "GROOM_PARENT", "FAMILY_HELPER"].includes(userRole)
+  const isBrideOrGroom = userRole === "BRIDE" || userRole === "GROOM"
+  const isPlanner = userRole === "PLANNER"
+
+  // Build nav items based on role
   const navItems = [
     { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
+    { href: "/tasks", label: "Tasks", icon: CheckSquare },
     { href: "/timeline", label: "Timeline", icon: Calendar },
-    { href: "/vendors", label: "Vendors", icon: Users },
-    { href: "/guest-links", label: "Guest Links", icon: Link2 },
+    ...(isInternalUser ? [{ href: "/budget", label: "Budget", icon: Wallet }] : []),
+    ...(isBrideOrGroom || isPlanner ? [{ href: "/vendors", label: "Vendors", icon: Users }] : []),
+    ...(isBrideOrGroom || isPlanner ? [{ href: "/guest-links", label: "Guest Links", icon: Link2 }] : []),
     { href: "/settings", label: "Settings", icon: Settings },
   ]
 

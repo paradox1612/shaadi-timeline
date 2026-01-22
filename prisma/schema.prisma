@@ -8,11 +8,18 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+// ============================================================
+// ENUMS
+// ============================================================
+
 enum UserRole {
   BRIDE
   GROOM
   PLANNER
   VENDOR
+  BRIDE_PARENT
+  GROOM_PARENT
+  FAMILY_HELPER
 }
 
 enum VendorType {
@@ -31,6 +38,49 @@ enum TimelineVisibility {
   AUDIENCE
 }
 
+enum TaskStatus {
+  TODO
+  IN_PROGRESS
+  BLOCKED
+  DONE
+  ARCHIVED
+}
+
+enum TaskPriority {
+  LOW
+  MEDIUM
+  HIGH
+  CRITICAL
+}
+
+enum TaskVisibility {
+  PRIVATE           // Only bride/groom + explicitly allowed roles/users
+  INTERNAL_TEAM     // Bride/groom + planner + selected family roles
+  PARENTS           // Bride/groom + parents + planner
+  VENDORS           // Bride/groom + planner + assigned vendor
+  EVERYONE_INTERNAL // Bride/groom + planner + parents + family helpers + assigned vendor
+}
+
+enum QuoteStatus {
+  DRAFT
+  SENT
+  ACCEPTED
+  REJECTED
+}
+
+enum PaymentMethod {
+  CASH
+  ZELLE
+  VENMO
+  BANK
+  CARD
+  OTHER
+}
+
+// ============================================================
+// USER & AUTH
+// ============================================================
+
 model User {
   id              String       @id @default(cuid())
   name            String
@@ -38,6 +88,9 @@ model User {
   passwordHash    String
   role            UserRole
   phone           String?      @db.VarChar(20)
+
+  // Profile metadata for family helpers (e.g., "sister", "cousin", "uncle")
+  relationshipLabel String?
 
   vendorProfile   VendorProfile?
 
@@ -48,8 +101,27 @@ model User {
   comments              Comment[]
   timeAdjustments       TimeAdjustment[]
 
+  // Task relations
+  createdTasks          Task[]        @relation("TaskCreatedBy")
+  assignedTasks         Task[]        @relation("TaskAssignedTo")
+  watchedTasks          TaskWatcher[]
+  taskComments          TaskComment[]
+  taskActivities        TaskActivity[]
+
+  // Task visibility overrides
+  allowedOnTasks        TaskAllowedUser[]
+  blockedOnTasks        TaskBlockedUser[]
+
+  // Quotes & Payments
+  createdQuotes         VendorQuote[]
+  createdPayments       Payment[]
+
   @@index([role])
 }
+
+// ============================================================
+// WEDDING
+// ============================================================
 
 model Wedding {
   id            String        @id @default(cuid())
@@ -65,7 +137,15 @@ model Wedding {
   eventDays     EventDay[]
   vendors       VendorProfile[]
   guestLinks    GuestViewLink[]
+  tasks         Task[]
+  quotes        VendorQuote[]
+  payments      Payment[]
+  permissionPolicy PermissionPolicy?
 }
+
+// ============================================================
+// EVENT DAYS
+// ============================================================
 
 model EventDay {
   id         String       @id @default(cuid())
@@ -78,10 +158,15 @@ model EventDay {
   timelineItems TimelineItem[]
   guestViewLinks GuestViewLinkEventDay[]
   timeAdjustments TimeAdjustment[]
+  tasks      Task[]
 
   @@index([weddingId])
   @@index([date])
 }
+
+// ============================================================
+// VENDOR PROFILES
+// ============================================================
 
 model VendorProfile {
   id            String       @id @default(cuid())
@@ -99,6 +184,9 @@ model VendorProfile {
   wedding       Wedding      @relation(fields: [weddingId], references: [id], onDelete: Cascade)
 
   timelineAssignments TimelineItemVendor[]
+  tasks         Task[]
+  quotes        VendorQuote[]
+  payments      Payment[]
 
   createdAt     DateTime     @default(now())
   updatedAt     DateTime     @updatedAt
@@ -106,6 +194,10 @@ model VendorProfile {
   @@index([weddingId])
   @@index([type])
 }
+
+// ============================================================
+// TIMELINE
+// ============================================================
 
 model TimelineItem {
   id                 String              @id @default(cuid())
@@ -136,6 +228,7 @@ model TimelineItem {
   assignedVendors    TimelineItemVendor[]
   comments           Comment[]
   timeAdjustments    TimeAdjustment[]
+  tasks              Task[]
 
   @@index([eventDayId])
   @@index([startTime])
@@ -152,6 +245,10 @@ model TimelineItemVendor {
   @@id([timelineItemId, vendorProfileId])
   @@index([vendorProfileId])
 }
+
+// ============================================================
+// GUEST VIEW LINKS
+// ============================================================
 
 model GuestViewLink {
   id             String         @id @default(cuid())
@@ -178,6 +275,10 @@ model GuestViewLinkEventDay {
   @@index([eventDayId])
 }
 
+// ============================================================
+// TIMELINE COMMENTS
+// ============================================================
+
 model Comment {
   id             String     @id @default(cuid())
   timelineItemId String
@@ -192,6 +293,10 @@ model Comment {
   @@index([timelineItemId])
   @@index([authorUserId])
 }
+
+// ============================================================
+// TIME ADJUSTMENTS
+// ============================================================
 
 model TimeAdjustment {
   id                String       @id @default(cuid())
@@ -210,4 +315,222 @@ model TimeAdjustment {
   @@index([eventDayId])
   @@index([fromItemId])
   @@index([appliedAt])
+}
+
+// ============================================================
+// TASKS (Things To Do)
+// ============================================================
+
+model Task {
+  id              String          @id @default(cuid())
+  weddingId       String
+
+  // Optional associations
+  eventDayId      String?
+  vendorId        String?
+  timelineItemId  String?
+
+  title           String
+  description     String?
+  status          TaskStatus      @default(TODO)
+  priority        TaskPriority    @default(MEDIUM)
+  dueDate         DateTime?
+
+  // Tags as JSON array of strings
+  tags            String[]        @default([])
+
+  // Attachments placeholders (URLs or file references for future)
+  attachments     String[]        @default([])
+
+  // Visibility & Privacy
+  visibility      TaskVisibility  @default(INTERNAL_TEAM)
+
+  // User assignment
+  createdByUserId String
+  assignedToUserId String?
+
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime        @updatedAt
+
+  // Relations
+  wedding         Wedding         @relation(fields: [weddingId], references: [id], onDelete: Cascade)
+  eventDay        EventDay?       @relation(fields: [eventDayId], references: [id], onDelete: SetNull)
+  vendor          VendorProfile?  @relation(fields: [vendorId], references: [id], onDelete: SetNull)
+  timelineItem    TimelineItem?   @relation(fields: [timelineItemId], references: [id], onDelete: SetNull)
+  createdBy       User            @relation("TaskCreatedBy", fields: [createdByUserId], references: [id])
+  assignedTo      User?           @relation("TaskAssignedTo", fields: [assignedToUserId], references: [id])
+
+  // Many-to-many: watchers
+  watchers        TaskWatcher[]
+
+  // Per-task visibility overrides
+  allowedUsers    TaskAllowedUser[]
+  blockedUsers    TaskBlockedUser[]
+
+  // Comments and activity
+  comments        TaskComment[]
+  activities      TaskActivity[]
+
+  @@index([weddingId])
+  @@index([status])
+  @@index([dueDate])
+  @@index([vendorId])
+  @@index([eventDayId])
+  @@index([assignedToUserId])
+  @@index([createdByUserId])
+  @@index([visibility])
+}
+
+model TaskWatcher {
+  taskId    String
+  userId    String
+
+  task      Task   @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  user      User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+
+  @@id([taskId, userId])
+  @@index([userId])
+}
+
+model TaskAllowedUser {
+  taskId    String
+  userId    String
+
+  task      Task   @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  user      User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@id([taskId, userId])
+  @@index([userId])
+}
+
+model TaskBlockedUser {
+  taskId    String
+  userId    String
+
+  task      Task   @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  user      User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@id([taskId, userId])
+  @@index([userId])
+}
+
+model TaskComment {
+  id          String   @id @default(cuid())
+  taskId      String
+  authorUserId String
+  text        String
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  task        Task     @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  author      User     @relation(fields: [authorUserId], references: [id])
+
+  @@index([taskId])
+  @@index([authorUserId])
+}
+
+model TaskActivity {
+  id          String   @id @default(cuid())
+  taskId      String
+  userId      String
+  action      String   // e.g., "created", "updated", "status_changed", "assigned", "commented"
+  details     Json?    // Additional context about the change
+
+  createdAt   DateTime @default(now())
+
+  task        Task     @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  user        User     @relation(fields: [userId], references: [id])
+
+  @@index([taskId])
+  @@index([userId])
+  @@index([createdAt])
+}
+
+// ============================================================
+// PERMISSIONS MATRIX
+// ============================================================
+
+model PermissionPolicy {
+  id          String   @id @default(cuid())
+  weddingId   String   @unique
+
+  // JSON object mapping role -> permissions
+  // Structure: { "PLANNER": { "tasks.create": true, ... }, ... }
+  permissions Json
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  wedding     Wedding  @relation(fields: [weddingId], references: [id], onDelete: Cascade)
+}
+
+// ============================================================
+// VENDOR QUOTES
+// ============================================================
+
+model VendorQuote {
+  id            String      @id @default(cuid())
+  weddingId     String
+  vendorId      String
+
+  title         String      // e.g., "Photo Package A"
+  amountTotal   Float
+  currency      String      @default("USD")
+  notes         String?
+
+  // Line items as JSON array
+  // Structure: [{ description: string, amount: number, quantity?: number }]
+  lineItems     Json        @default("[]")
+
+  status        QuoteStatus @default(DRAFT)
+
+  createdByUserId String
+
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+
+  wedding       Wedding     @relation(fields: [weddingId], references: [id], onDelete: Cascade)
+  vendor        VendorProfile @relation(fields: [vendorId], references: [id], onDelete: Cascade)
+  createdBy     User        @relation(fields: [createdByUserId], references: [id])
+
+  payments      Payment[]
+
+  @@index([weddingId])
+  @@index([vendorId])
+  @@index([status])
+}
+
+// ============================================================
+// PAYMENTS
+// ============================================================
+
+model Payment {
+  id            String        @id @default(cuid())
+  weddingId     String
+  vendorId      String?       // Nullable if generic payment
+  quoteId       String?       // Nullable if not linked to a quote
+
+  amount        Float
+  currency      String        @default("USD")
+  paidAt        DateTime      @default(now())
+  method        PaymentMethod @default(OTHER)
+  note          String?
+
+  createdByUserId String
+
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+
+  wedding       Wedding       @relation(fields: [weddingId], references: [id], onDelete: Cascade)
+  vendor        VendorProfile? @relation(fields: [vendorId], references: [id], onDelete: SetNull)
+  quote         VendorQuote?  @relation(fields: [quoteId], references: [id], onDelete: SetNull)
+  createdBy     User          @relation(fields: [createdByUserId], references: [id])
+
+  @@index([weddingId])
+  @@index([vendorId])
+  @@index([quoteId])
+  @@index([paidAt])
 }

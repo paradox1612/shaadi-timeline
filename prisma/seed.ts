@@ -82,6 +82,41 @@ async function main() {
   })
   console.log("Created planner:", planner.email)
 
+  // Create parent users
+  const brideParent = await prisma.user.create({
+    data: {
+      name: "Mrs. Sharma",
+      email: "bride-parent@example.com",
+      passwordHash: hashedPassword,
+      role: "BRIDE_PARENT",
+      relationshipLabel: "Mother of the Bride",
+    },
+  })
+  console.log("Created bride parent:", brideParent.email)
+
+  const groomParent = await prisma.user.create({
+    data: {
+      name: "Mr. Patel",
+      email: "groom-parent@example.com",
+      passwordHash: hashedPassword,
+      role: "GROOM_PARENT",
+      relationshipLabel: "Father of the Groom",
+    },
+  })
+  console.log("Created groom parent:", groomParent.email)
+
+  // Create family helper user
+  const familyHelper = await prisma.user.create({
+    data: {
+      name: "Anita Sharma",
+      email: "helper@example.com",
+      passwordHash: hashedPassword,
+      role: "FAMILY_HELPER",
+      relationshipLabel: "Sister of the Bride",
+    },
+  })
+  console.log("Created family helper:", familyHelper.email)
+
   // Create vendor profiles
   const photographer = await prisma.vendorProfile.create({
     data: {
@@ -136,6 +171,17 @@ async function main() {
       contactName: "Maya Reddy",
       email: "decor@example.com",
       phone: "+1-555-0104",
+    },
+  })
+
+  const caterer = await prisma.vendorProfile.create({
+    data: {
+      weddingId: wedding.id,
+      type: "CATERER",
+      companyName: "Spice Route Catering",
+      contactName: "Chef Rajan",
+      email: "caterer@example.com",
+      phone: "+1-555-0105",
     },
   })
 
@@ -395,12 +441,380 @@ async function main() {
 
   console.log("Created guest links")
 
+  // Create default permission policy
+  await prisma.permissionPolicy.create({
+    data: {
+      weddingId: wedding.id,
+      permissions: {
+        PLANNER: {
+          "tasks.create": true,
+          "tasks.edit_any": true,
+          "tasks.edit_assigned": true,
+          "tasks.view_private": false,
+          "tasks.assign": true,
+          "tasks.comment": true,
+          "vendors.view": true,
+          "vendors.manage": true,
+          "quotes.view": true,
+          "quotes.manage": true,
+          "payments.create": true,
+          "payments.approve": false,
+          "payments.view_all": true,
+          "payments.view_own": true,
+        },
+        BRIDE_PARENT: {
+          "tasks.create": true,
+          "tasks.edit_any": false,
+          "tasks.edit_assigned": true,
+          "tasks.view_private": false,
+          "tasks.assign": false,
+          "tasks.comment": true,
+          "vendors.view": true,
+          "vendors.manage": false,
+          "quotes.view": true,
+          "quotes.manage": false,
+          "payments.create": false,
+          "payments.approve": false,
+          "payments.view_all": false,
+          "payments.view_own": true,
+        },
+        GROOM_PARENT: {
+          "tasks.create": true,
+          "tasks.edit_any": false,
+          "tasks.edit_assigned": true,
+          "tasks.view_private": false,
+          "tasks.assign": false,
+          "tasks.comment": true,
+          "vendors.view": true,
+          "vendors.manage": false,
+          "quotes.view": true,
+          "quotes.manage": false,
+          "payments.create": false,
+          "payments.approve": false,
+          "payments.view_all": false,
+          "payments.view_own": true,
+        },
+        FAMILY_HELPER: {
+          "tasks.create": true,
+          "tasks.edit_any": false,
+          "tasks.edit_assigned": true,
+          "tasks.view_private": false,
+          "tasks.assign": false,
+          "tasks.comment": true,
+          "vendors.view": true,
+          "vendors.manage": false,
+          "quotes.view": false,
+          "quotes.manage": false,
+          "payments.create": false,
+          "payments.approve": false,
+          "payments.view_all": false,
+          "payments.view_own": false,
+        },
+        VENDOR: {
+          "tasks.create": false,
+          "tasks.edit_any": false,
+          "tasks.edit_assigned": true,
+          "tasks.view_private": false,
+          "tasks.assign": false,
+          "tasks.comment": true,
+          "vendors.view": false,
+          "vendors.manage": false,
+          "quotes.view": true,
+          "quotes.manage": false,
+          "payments.create": false,
+          "payments.approve": false,
+          "payments.view_all": false,
+          "payments.view_own": true,
+        },
+      },
+    },
+  })
+
+  console.log("Created permission policy")
+
+  // Create sample tasks
+  // Private task (only bride/groom can see)
+  await prisma.task.create({
+    data: {
+      weddingId: wedding.id,
+      title: "Plan surprise for groom",
+      description: "Coordinate with bridesmaids for a surprise performance during sangeet",
+      status: "IN_PROGRESS",
+      priority: "HIGH",
+      visibility: "PRIVATE",
+      dueDate: new Date("2026-01-25"),
+      tags: ["surprise", "sangeet"],
+      createdByUserId: bride.id,
+    },
+  })
+
+  // Internal team task
+  await prisma.task.create({
+    data: {
+      weddingId: wedding.id,
+      title: "Finalize guest list",
+      description: "Confirm final headcount with all family members",
+      status: "TODO",
+      priority: "CRITICAL",
+      visibility: "INTERNAL_TEAM",
+      dueDate: new Date("2026-01-15"),
+      tags: ["guests", "urgent"],
+      createdByUserId: planner.id,
+      assignedToUserId: bride.id,
+    },
+  })
+
+  // Parents visibility task
+  await prisma.task.create({
+    data: {
+      weddingId: wedding.id,
+      title: "Coordinate extended family accommodations",
+      description: "Book hotel blocks and arrange transportation from airport",
+      status: "TODO",
+      priority: "MEDIUM",
+      visibility: "PARENTS",
+      dueDate: new Date("2026-01-20"),
+      tags: ["travel", "family"],
+      createdByUserId: bride.id,
+      assignedToUserId: brideParent.id,
+    },
+  })
+
+  // Vendor visibility task
+  await prisma.task.create({
+    data: {
+      weddingId: wedding.id,
+      eventDayId: wedding_day.id,
+      vendorId: photographer.id,
+      title: "Submit shot list for wedding ceremony",
+      description: "Provide detailed shot list including must-have moments and family groupings",
+      status: "TODO",
+      priority: "HIGH",
+      visibility: "VENDORS",
+      dueDate: new Date("2026-01-28"),
+      tags: ["photography", "planning"],
+      createdByUserId: planner.id,
+    },
+  })
+
+  // Everyone internal task
+  await prisma.task.create({
+    data: {
+      weddingId: wedding.id,
+      eventDayId: sangeet.id,
+      title: "Finalize sangeet performance order",
+      description: "Create and share the performance lineup for sangeet night",
+      status: "IN_PROGRESS",
+      priority: "HIGH",
+      visibility: "EVERYONE_INTERNAL",
+      dueDate: new Date("2026-01-30"),
+      tags: ["sangeet", "performances"],
+      createdByUserId: familyHelper.id,
+      watchers: {
+        create: [
+          { userId: bride.id },
+          { userId: groom.id },
+        ],
+      },
+    },
+  })
+
+  // Completed task
+  await prisma.task.create({
+    data: {
+      weddingId: wedding.id,
+      title: "Book wedding venue",
+      description: "Signed contract with Grand Houston Hotel",
+      status: "DONE",
+      priority: "CRITICAL",
+      visibility: "INTERNAL_TEAM",
+      tags: ["venue", "milestone"],
+      createdByUserId: bride.id,
+    },
+  })
+
+  console.log("Created sample tasks")
+
+  // Create sample vendor quotes
+  const photoQuote = await prisma.vendorQuote.create({
+    data: {
+      weddingId: wedding.id,
+      vendorId: photographer.id,
+      title: "Premium Photography Package",
+      amountTotal: 8500,
+      currency: "USD",
+      notes: "Includes 2 photographers, engagement shoot, all edited photos, and wedding album",
+      lineItems: [
+        { description: "Wedding Day Coverage (12 hours)", amount: 5000, quantity: 1 },
+        { description: "Engagement Shoot", amount: 1500, quantity: 1 },
+        { description: "Premium Wedding Album", amount: 1500, quantity: 1 },
+        { description: "Second Photographer", amount: 500, quantity: 1 },
+      ],
+      status: "ACCEPTED",
+      createdByUserId: planner.id,
+    },
+  })
+
+  const videoQuote = await prisma.vendorQuote.create({
+    data: {
+      weddingId: wedding.id,
+      vendorId: videographer.id,
+      title: "Cinematic Video Package",
+      amountTotal: 6000,
+      currency: "USD",
+      notes: "Full day coverage with highlight reel and documentary edit",
+      lineItems: [
+        { description: "Full Day Coverage", amount: 4000, quantity: 1 },
+        { description: "Highlight Reel (5-7 min)", amount: 1000, quantity: 1 },
+        { description: "Documentary Edit (30-40 min)", amount: 1000, quantity: 1 },
+      ],
+      status: "ACCEPTED",
+      createdByUserId: planner.id,
+    },
+  })
+
+  const djQuote = await prisma.vendorQuote.create({
+    data: {
+      weddingId: wedding.id,
+      vendorId: dj.id,
+      title: "DJ & Sound Package",
+      amountTotal: 3500,
+      currency: "USD",
+      notes: "Coverage for Sangeet and Reception",
+      lineItems: [
+        { description: "Sangeet Night (5 hours)", amount: 1500, quantity: 1 },
+        { description: "Reception (5 hours)", amount: 1500, quantity: 1 },
+        { description: "Premium Sound System", amount: 500, quantity: 1 },
+      ],
+      status: "SENT",
+      createdByUserId: planner.id,
+    },
+  })
+
+  const decorQuote = await prisma.vendorQuote.create({
+    data: {
+      weddingId: wedding.id,
+      vendorId: decor.id,
+      title: "Full Wedding Decor Package",
+      amountTotal: 15000,
+      currency: "USD",
+      notes: "All 5 events - Mehendi, Sangeet, Haldi, Wedding, Reception",
+      lineItems: [
+        { description: "Mehendi Decor", amount: 2000, quantity: 1 },
+        { description: "Sangeet Decor", amount: 3000, quantity: 1 },
+        { description: "Haldi Decor", amount: 1500, quantity: 1 },
+        { description: "Wedding Mandap & Hall", amount: 5000, quantity: 1 },
+        { description: "Reception Decor", amount: 3500, quantity: 1 },
+      ],
+      status: "ACCEPTED",
+      createdByUserId: bride.id,
+    },
+  })
+
+  const cateringQuote = await prisma.vendorQuote.create({
+    data: {
+      weddingId: wedding.id,
+      vendorId: caterer.id,
+      title: "Full Catering Package (500 guests)",
+      amountTotal: 45000,
+      currency: "USD",
+      notes: "All events - vegetarian and non-vegetarian options",
+      lineItems: [
+        { description: "Mehendi - Light Refreshments", amount: 5000, quantity: 1 },
+        { description: "Sangeet - Dinner Buffet", amount: 10000, quantity: 1 },
+        { description: "Haldi - Brunch", amount: 5000, quantity: 1 },
+        { description: "Wedding - Lunch Feast", amount: 15000, quantity: 1 },
+        { description: "Reception - Dinner Buffet", amount: 10000, quantity: 1 },
+      ],
+      status: "ACCEPTED",
+      createdByUserId: bride.id,
+    },
+  })
+
+  console.log("Created vendor quotes")
+
+  // Create sample payments
+  await prisma.payment.create({
+    data: {
+      weddingId: wedding.id,
+      vendorId: photographer.id,
+      quoteId: photoQuote.id,
+      amount: 4250,
+      currency: "USD",
+      paidAt: new Date("2025-10-15"),
+      method: "ZELLE",
+      note: "50% deposit payment",
+      createdByUserId: bride.id,
+    },
+  })
+
+  await prisma.payment.create({
+    data: {
+      weddingId: wedding.id,
+      vendorId: videographer.id,
+      quoteId: videoQuote.id,
+      amount: 2000,
+      currency: "USD",
+      paidAt: new Date("2025-11-01"),
+      method: "BANK",
+      note: "Initial deposit",
+      createdByUserId: groom.id,
+    },
+  })
+
+  await prisma.payment.create({
+    data: {
+      weddingId: wedding.id,
+      vendorId: decor.id,
+      quoteId: decorQuote.id,
+      amount: 7500,
+      currency: "USD",
+      paidAt: new Date("2025-11-15"),
+      method: "BANK",
+      note: "50% deposit",
+      createdByUserId: bride.id,
+    },
+  })
+
+  await prisma.payment.create({
+    data: {
+      weddingId: wedding.id,
+      vendorId: caterer.id,
+      quoteId: cateringQuote.id,
+      amount: 15000,
+      currency: "USD",
+      paidAt: new Date("2025-12-01"),
+      method: "BANK",
+      note: "First installment - 1/3",
+      createdByUserId: bride.id,
+    },
+  })
+
+  await prisma.payment.create({
+    data: {
+      weddingId: wedding.id,
+      vendorId: caterer.id,
+      quoteId: cateringQuote.id,
+      amount: 15000,
+      currency: "USD",
+      paidAt: new Date("2026-01-01"),
+      method: "BANK",
+      note: "Second installment - 2/3",
+      createdByUserId: groom.id,
+    },
+  })
+
+  console.log("Created sample payments")
+
   console.log("\n✅ Seed data created successfully!")
   console.log("\n📋 Test Credentials:")
   console.log("   Bride: bride@example.com / password123")
   console.log("   Groom: groom@example.com / password123")
   console.log("   Planner: planner@example.com / password123")
   console.log("   Vendor: vendor@example.com / password123")
+  console.log("   Bride Parent: bride-parent@example.com / password123")
+  console.log("   Groom Parent: groom-parent@example.com / password123")
+  console.log("   Family Helper: helper@example.com / password123")
   console.log("\n🔗 Guest Link: /guest/sample-guest-link-token-12345")
 }
 

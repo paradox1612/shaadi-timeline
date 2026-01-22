@@ -137,8 +137,7 @@ export default function GuestLinksPage() {
     )
   }
 
-  // Link Form Component
-  const LinkForm = () => (
+  const linkFormContent = (
     <form onSubmit={handleSubmit} className="space-y-5">
       <div>
         <Label htmlFor="linkLabel" className="text-sm font-medium">Link Name</Label>
@@ -233,7 +232,7 @@ export default function GuestLinksPage() {
                 <SheetHeader className="text-left pb-4">
                   <SheetTitle className="text-xl">Create Guest Link</SheetTitle>
                 </SheetHeader>
-                <LinkForm />
+                {linkFormContent}
               </SheetContent>
             </Sheet>
           </div>
@@ -258,7 +257,7 @@ export default function GuestLinksPage() {
                   <DialogTitle>Create Guest Link</DialogTitle>
                 </DialogHeader>
                 <div className="pt-4">
-                  <LinkForm />
+                  {linkFormContent}
                 </div>
               </DialogContent>
             </Dialog>

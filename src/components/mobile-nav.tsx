@@ -23,15 +23,18 @@ import {
   ChevronRight,
   CheckSquare,
   Wallet,
+  Image,
+  Shield,
 } from "lucide-react"
 import { useState } from "react"
 
 interface MobileNavProps {
   userName: string
   userRole: string
+  guestLinkToken?: string
 }
 
-export function MobileNav({ userName, userRole }: MobileNavProps) {
+export function MobileNav({ userName, userRole, guestLinkToken }: MobileNavProps) {
   const pathname = usePathname()
   const [open, setOpen] = useState(false)
 
@@ -39,17 +42,28 @@ export function MobileNav({ userName, userRole }: MobileNavProps) {
   const isInternalUser = ["BRIDE", "GROOM", "PLANNER", "BRIDE_PARENT", "GROOM_PARENT", "FAMILY_HELPER"].includes(userRole)
   const isBrideOrGroom = userRole === "BRIDE" || userRole === "GROOM"
   const isPlanner = userRole === "PLANNER"
+  const isGuest = userRole === "GUEST"
 
   // Build nav items based on role
-  const navItems = [
-    { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
-    { href: "/tasks", label: "Tasks", icon: CheckSquare },
-    { href: "/timeline", label: "Timeline", icon: Calendar },
-    ...(isInternalUser ? [{ href: "/budget", label: "Budget", icon: Wallet }] : []),
-    ...(isBrideOrGroom || isPlanner ? [{ href: "/vendors", label: "Vendors", icon: Users }] : []),
-    ...(isBrideOrGroom || isPlanner ? [{ href: "/guest-links", label: "Guest Links", icon: Link2 }] : []),
-    { href: "/settings", label: "Settings", icon: Settings },
-  ]
+  const navItems = isGuest
+    ? [
+        { href: guestLinkToken ? `/guest/${guestLinkToken}` : "/timeline", label: "Timeline", icon: Calendar },
+        { href: guestLinkToken ? `/guest/${guestLinkToken}/uploads` : "/my-uploads", label: "My Uploads", icon: Image },
+        { href: guestLinkToken ? `/guest/${guestLinkToken}/gallery` : "/gallery", label: "Gallery", icon: Image },
+      ]
+    : [
+        { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
+        { href: "/tasks", label: "Tasks", icon: CheckSquare },
+        { href: "/timeline", label: "Timeline", icon: Calendar },
+        ...(isInternalUser ? [{ href: "/budget", label: "Budget", icon: Wallet }] : []),
+        ...(isBrideOrGroom || isPlanner ? [{ href: "/vendors", label: "Vendors", icon: Users }] : []),
+        ...(isBrideOrGroom || isPlanner ? [{ href: "/guest-links", label: "Guest Links", icon: Link2 }] : []),
+        { href: "/gallery", label: "Gallery", icon: Image },
+        ...(isBrideOrGroom || isPlanner
+          ? [{ href: "/admin/photos", label: "Photos", icon: Shield }]
+          : []),
+        { href: "/settings", label: "Settings", icon: Settings },
+      ]
 
   return (
     <Sheet open={open} onOpenChange={setOpen}>
@@ -71,7 +85,9 @@ export function MobileNav({ userName, userRole }: MobileNavProps) {
             </div>
             <div className="text-left">
               <SheetTitle className="text-base font-semibold">{userName}</SheetTitle>
-              <p className="text-sm text-muted-foreground capitalize">{userRole.toLowerCase()}</p>
+              {!isGuest && (
+                <p className="text-sm text-muted-foreground capitalize">{userRole.toLowerCase()}</p>
+              )}
             </div>
           </div>
         </SheetHeader>
@@ -100,17 +116,20 @@ export function MobileNav({ userName, userRole }: MobileNavProps) {
           })}
         </nav>
 
-        <div className="absolute bottom-0 left-0 right-0 p-4 border-t bg-gray-50/80 backdrop-blur-sm">
-          <Button
-            variant="ghost"
-            className="w-full justify-start gap-3 text-gray-600 hover:text-gray-900 hover:bg-gray-100 h-12 rounded-xl"
-            onClick={() => signOut({ callbackUrl: "/login" })}
-          >
-            <LogOut className="h-5 w-5" />
-            Sign Out
-          </Button>
-        </div>
+        {!isGuest && (
+          <div className="absolute bottom-0 left-0 right-0 p-4 border-t bg-gray-50/80 backdrop-blur-sm">
+            <Button
+              variant="ghost"
+              className="w-full justify-start gap-3 text-gray-600 hover:text-gray-900 hover:bg-gray-100 h-12 rounded-xl"
+              onClick={() => signOut({ callbackUrl: "/login" })}
+            >
+              <LogOut className="h-5 w-5" />
+              Sign Out
+            </Button>
+          </div>
+        )}
       </SheetContent>
     </Sheet>
   )
 }
+

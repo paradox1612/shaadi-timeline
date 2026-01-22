@@ -321,10 +321,10 @@ export default function TasksPage() {
       <Nav userName={session.user.name} userRole={session.user.role} />
 
       <main className="container mx-auto px-4 py-8">
-        <div className="flex items-center justify-between mb-6">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
           <div>
-            <h1 className="text-3xl font-bold">Tasks</h1>
-            <p className="text-gray-600 mt-1">
+            <h1 className="text-2xl sm:text-3xl font-bold">Tasks</h1>
+            <p className="text-gray-600 mt-1 text-sm sm:text-base">
               Manage your wedding planning tasks
             </p>
           </div>
@@ -369,7 +369,7 @@ export default function TasksPage() {
                   />
                 </div>
 
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div>
                     <Label htmlFor="status">Status</Label>
                     <Select
@@ -415,7 +415,7 @@ export default function TasksPage() {
                   </div>
                 </div>
 
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div>
                     <Label htmlFor="visibility">Visibility</Label>
                     <Select
@@ -455,7 +455,7 @@ export default function TasksPage() {
                   </div>
                 </div>
 
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div>
                     <Label htmlFor="eventDay">Event Day</Label>
                     <Select
@@ -607,20 +607,20 @@ export default function TasksPage() {
 
         {/* Task Tabs */}
         <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as any)}>
-          <TabsList className="mb-4">
-            <TabsTrigger value="ALL">
+          <TabsList className="mb-4 w-full overflow-x-auto flex-nowrap justify-start">
+            <TabsTrigger value="ALL" className="text-xs sm:text-sm">
               All ({tasks.filter((t) => t.status !== "ARCHIVED").length})
             </TabsTrigger>
-            <TabsTrigger value="TODO">
+            <TabsTrigger value="TODO" className="text-xs sm:text-sm">
               To Do ({groupedByStatus.TODO.length})
             </TabsTrigger>
-            <TabsTrigger value="IN_PROGRESS">
+            <TabsTrigger value="IN_PROGRESS" className="text-xs sm:text-sm whitespace-nowrap">
               In Progress ({groupedByStatus.IN_PROGRESS.length})
             </TabsTrigger>
-            <TabsTrigger value="BLOCKED">
+            <TabsTrigger value="BLOCKED" className="text-xs sm:text-sm">
               Blocked ({groupedByStatus.BLOCKED.length})
             </TabsTrigger>
-            <TabsTrigger value="DONE">
+            <TabsTrigger value="DONE" className="text-xs sm:text-sm">
               Done ({groupedByStatus.DONE.length})
             </TabsTrigger>
           </TabsList>
@@ -641,28 +641,28 @@ export default function TasksPage() {
                     key={task.id}
                     className="hover:shadow-md transition-shadow"
                   >
-                    <CardContent className="pt-6">
-                      <div className="flex items-start justify-between">
-                        <div className="flex-1">
-                          <div className="flex items-center gap-2 mb-2">
-                            <h3 className="font-semibold text-lg">
+                    <CardContent className="pt-4 sm:pt-6">
+                      <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
+                        <div className="flex-1 min-w-0">
+                          <div className="flex flex-wrap items-center gap-2 mb-2">
+                            <h3 className="font-semibold text-base sm:text-lg break-words">
                               {task.title}
                             </h3>
-                            <Badge className={PRIORITY_COLORS[task.priority]}>
+                            <Badge className={`${PRIORITY_COLORS[task.priority]} text-xs`}>
                               {PRIORITY_LABELS[task.priority]}
                             </Badge>
-                            <Badge className={STATUS_COLORS[task.status]}>
+                            <Badge className={`${STATUS_COLORS[task.status]} text-xs sm:hidden`}>
                               {STATUS_LABELS[task.status]}
                             </Badge>
                           </div>
 
                           {task.description && (
-                            <p className="text-gray-600 mb-3">
+                            <p className="text-gray-600 mb-3 text-sm sm:text-base">
                               {task.description}
                             </p>
                           )}
 
-                          <div className="flex flex-wrap gap-2 text-sm text-gray-500">
+                          <div className="flex flex-wrap gap-x-3 gap-y-1 text-xs sm:text-sm text-gray-500">
                             {task.dueDate && (
                               <span>
                                 Due:{" "}
@@ -694,14 +694,14 @@ export default function TasksPage() {
                           )}
                         </div>
 
-                        <div className="flex items-center gap-2 ml-4">
+                        <div className="flex flex-wrap sm:flex-nowrap items-center gap-2">
                           <Select
                             value={task.status}
                             onValueChange={(v) =>
                               handleStatusChange(task, v as Task["status"])
                             }
                           >
-                            <SelectTrigger className="w-[130px]">
+                            <SelectTrigger className="w-full sm:w-[130px]">
                               <SelectValue />
                             </SelectTrigger>
                             <SelectContent>
@@ -715,20 +715,24 @@ export default function TasksPage() {
                             </SelectContent>
                           </Select>
 
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => openEditDialog(task)}
-                          >
-                            Edit
-                          </Button>
-                          <Button
-                            variant="destructive"
-                            size="sm"
-                            onClick={() => handleDelete(task.id)}
-                          >
-                            Delete
-                          </Button>
+                          <div className="flex gap-2 w-full sm:w-auto">
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              className="flex-1 sm:flex-none"
+                              onClick={() => openEditDialog(task)}
+                            >
+                              Edit
+                            </Button>
+                            <Button
+                              variant="destructive"
+                              size="sm"
+                              className="flex-1 sm:flex-none"
+                              onClick={() => handleDelete(task.id)}
+                            >
+                              Delete
+                            </Button>
+                          </div>
                         </div>
                       </div>
                     </CardContent>

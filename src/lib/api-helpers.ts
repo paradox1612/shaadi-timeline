@@ -10,11 +10,20 @@ export async function requireAuth(allowedRoles?: UserRole[]) {
     return { error: NextResponse.json({ error: "Unauthorized" }, { status: 401 }) }
   }
 
+  // Verify user exists in DB (handles stale JWTs after DB reset)
+  const user = await prisma.user.findUnique({
+    where: { id: session.user.id }
+  })
+
+  if (!user) {
+    return { error: NextResponse.json({ error: "User not found. Please login again." }, { status: 401 }) }
+  }
+
   if (allowedRoles && !allowedRoles.includes(session.user.role)) {
     return { error: NextResponse.json({ error: "Forbidden" }, { status: 403 }) }
   }
 
-  return { session }
+  return { session, user }
 }
 
 // Returns true for bride, groom, and planner (core internal team)

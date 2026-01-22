@@ -40,7 +40,7 @@ async function main() {
   // Create wedding
   const wedding = await prisma.wedding.create({
     data: {
-      name: "Priya & Rahul's Wedding",
+      name: "Freya & Kush's Wedding",
       locationCity: "Houston, TX",
       timezone: "America/Chicago",
       startDate: new Date("2026-02-01"),
@@ -54,7 +54,7 @@ async function main() {
 
   const bride = await prisma.user.create({
     data: {
-      name: "Priya Sharma",
+      name: "Freya Sharma",
       email: "bride@example.com",
       passwordHash: hashedPassword,
       role: "BRIDE",
@@ -64,7 +64,7 @@ async function main() {
 
   const groom = await prisma.user.create({
     data: {
-      name: "Rahul Patel",
+      name: "Kush Patel",
       email: "groom@example.com",
       passwordHash: hashedPassword,
       role: "GROOM",

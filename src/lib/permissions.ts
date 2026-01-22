@@ -20,6 +20,8 @@ export const PERMISSION_CAPABILITIES = [
   "payments.approve",
   "payments.view_all",
   "payments.view_own",
+  "photos.view_any",
+  "photos.manage_any",
 ] as const
 
 export type PermissionCapability = (typeof PERMISSION_CAPABILITIES)[number]
@@ -52,6 +54,8 @@ export const DEFAULT_PERMISSIONS: PermissionsMatrix = {
     "payments.approve": true,
     "payments.view_all": true,
     "payments.view_own": true,
+    "photos.view_any": true,
+    "photos.manage_any": true,
   },
   GROOM: {
     "tasks.create": true,
@@ -68,6 +72,8 @@ export const DEFAULT_PERMISSIONS: PermissionsMatrix = {
     "payments.approve": true,
     "payments.view_all": true,
     "payments.view_own": true,
+    "photos.view_any": true,
+    "photos.manage_any": true,
   },
   PLANNER: {
     "tasks.create": true,
@@ -84,6 +90,8 @@ export const DEFAULT_PERMISSIONS: PermissionsMatrix = {
     "payments.approve": false, // Cannot approve payments by default
     "payments.view_all": true,
     "payments.view_own": true,
+    "photos.view_any": true,
+    "photos.manage_any": true,
   },
   BRIDE_PARENT: {
     "tasks.create": true,
@@ -491,6 +499,14 @@ export async function canCreatePayments(
   weddingId: string
 ): Promise<boolean> {
   return hasPermission(userId, userRole, weddingId, "payments.create")
+}
+
+export async function canManagePhotos(
+  userId: string,
+  userRole: UserRole,
+  weddingId: string
+): Promise<boolean> {
+  return hasPermission(userId, userRole, weddingId, "photos.manage_any")
 }
 
 // ============================================================

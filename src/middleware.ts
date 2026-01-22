@@ -17,7 +17,16 @@ export default auth((req) => {
   const session = req.auth
 
   // Public routes
-  if (pathname.startsWith("/guest/") || pathname === "/login") {
+  if (
+    pathname.startsWith("/guest/") || 
+    pathname === "/login" || 
+    pathname.startsWith("/api/guest-view/") ||
+    pathname === "/gallery" ||
+    pathname === "/my-uploads" ||
+    pathname === "/api/gallery/photos" ||
+    pathname === "/api/photos" ||
+    pathname.startsWith("/api/guests")
+  ) {
     return NextResponse.next()
   }
 

@@ -360,22 +360,22 @@ export default function BudgetPage() {
       <Nav userName={session.user.name} userRole={session.user.role} />
 
       <main className="container mx-auto px-4 py-8">
-        <div className="flex items-center justify-between mb-6">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
           <div>
-            <h1 className="text-3xl font-bold">Budget</h1>
-            <p className="text-gray-600 mt-1">
+            <h1 className="text-2xl sm:text-3xl font-bold">Budget</h1>
+            <p className="text-gray-600 mt-1 text-sm sm:text-base">
               Track vendor quotes and payments
             </p>
           </div>
-          <div className="flex gap-2">
+          <div className="flex gap-2 w-full sm:w-auto">
             <Dialog open={quoteDialogOpen} onOpenChange={(open) => {
               setQuoteDialogOpen(open)
               if (!open) resetQuoteForm()
             }}>
               <DialogTrigger asChild>
-                <Button variant="outline">+ New Quote</Button>
+                <Button variant="outline" className="flex-1 sm:flex-none">+ New Quote</Button>
               </DialogTrigger>
-              <DialogContent className="max-w-lg">
+              <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
                 <DialogHeader>
                   <DialogTitle>
                     {editingQuote ? "Edit Quote" : "Add New Quote"}
@@ -413,7 +413,7 @@ export default function BudgetPage() {
                     />
                   </div>
 
-                  <div className="grid grid-cols-2 gap-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div>
                       <Label htmlFor="amount">Amount *</Label>
                       <Input
@@ -476,9 +476,9 @@ export default function BudgetPage() {
               if (!open) resetPaymentForm()
             }}>
               <DialogTrigger asChild>
-                <Button>+ Record Payment</Button>
+                <Button className="flex-1 sm:flex-none">+ Record Payment</Button>
               </DialogTrigger>
-              <DialogContent className="max-w-lg">
+              <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
                 <DialogHeader>
                   <DialogTitle>Record Payment</DialogTitle>
                 </DialogHeader>
@@ -525,7 +525,7 @@ export default function BudgetPage() {
                     </Select>
                   </div>
 
-                  <div className="grid grid-cols-2 gap-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div>
                       <Label htmlFor="paymentAmount">Amount *</Label>
                       <Input
@@ -600,15 +600,15 @@ export default function BudgetPage() {
           <>
             {/* Summary Cards */}
             {summary && (
-              <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4 mb-6">
                 <Card>
-                  <CardHeader className="pb-2">
-                    <CardTitle className="text-sm font-medium text-gray-500">
+                  <CardHeader className="pb-1 sm:pb-2 px-3 sm:px-6 pt-3 sm:pt-6">
+                    <CardTitle className="text-xs sm:text-sm font-medium text-gray-500">
                       Total Quoted
                     </CardTitle>
                   </CardHeader>
-                  <CardContent>
-                    <div className="text-2xl font-bold">
+                  <CardContent className="px-3 sm:px-6 pb-3 sm:pb-6">
+                    <div className="text-lg sm:text-2xl font-bold truncate">
                       {formatCurrency(summary.overall.totalQuoted)}
                     </div>
                     <p className="text-xs text-gray-500">
@@ -618,29 +618,29 @@ export default function BudgetPage() {
                 </Card>
 
                 <Card>
-                  <CardHeader className="pb-2">
-                    <CardTitle className="text-sm font-medium text-gray-500">
+                  <CardHeader className="pb-1 sm:pb-2 px-3 sm:px-6 pt-3 sm:pt-6">
+                    <CardTitle className="text-xs sm:text-sm font-medium text-gray-500">
                       Accepted
                     </CardTitle>
                   </CardHeader>
-                  <CardContent>
-                    <div className="text-2xl font-bold text-green-600">
+                  <CardContent className="px-3 sm:px-6 pb-3 sm:pb-6">
+                    <div className="text-lg sm:text-2xl font-bold text-green-600 truncate">
                       {formatCurrency(summary.overall.totalAccepted)}
                     </div>
-                    <p className="text-xs text-gray-500">
-                      {summary.quotesByStatus.ACCEPTED} accepted quotes
+                    <p className="text-xs text-gray-500 truncate">
+                      {summary.quotesByStatus.ACCEPTED} accepted
                     </p>
                   </CardContent>
                 </Card>
 
                 <Card>
-                  <CardHeader className="pb-2">
-                    <CardTitle className="text-sm font-medium text-gray-500">
+                  <CardHeader className="pb-1 sm:pb-2 px-3 sm:px-6 pt-3 sm:pt-6">
+                    <CardTitle className="text-xs sm:text-sm font-medium text-gray-500">
                       Total Paid
                     </CardTitle>
                   </CardHeader>
-                  <CardContent>
-                    <div className="text-2xl font-bold text-blue-600">
+                  <CardContent className="px-3 sm:px-6 pb-3 sm:pb-6">
+                    <div className="text-lg sm:text-2xl font-bold text-blue-600 truncate">
                       {formatCurrency(summary.overall.totalPaid)}
                     </div>
                     <p className="text-xs text-gray-500">
@@ -650,19 +650,19 @@ export default function BudgetPage() {
                 </Card>
 
                 <Card>
-                  <CardHeader className="pb-2">
-                    <CardTitle className="text-sm font-medium text-gray-500">
+                  <CardHeader className="pb-1 sm:pb-2 px-3 sm:px-6 pt-3 sm:pt-6">
+                    <CardTitle className="text-xs sm:text-sm font-medium text-gray-500">
                       Remaining
                     </CardTitle>
                   </CardHeader>
-                  <CardContent>
-                    <div className={`text-2xl font-bold ${
+                  <CardContent className="px-3 sm:px-6 pb-3 sm:pb-6">
+                    <div className={`text-lg sm:text-2xl font-bold truncate ${
                       summary.overall.totalRemaining > 0 ? "text-orange-600" : "text-green-600"
                     }`}>
                       {formatCurrency(summary.overall.totalRemaining)}
                     </div>
-                    <p className="text-xs text-gray-500">
-                      from accepted quotes
+                    <p className="text-xs text-gray-500 truncate">
+                      from accepted
                     </p>
                   </CardContent>
                 </Card>
@@ -683,37 +683,37 @@ export default function BudgetPage() {
                   <div className="grid gap-4">
                     {summary.byVendor.map((vendor) => (
                       <Card key={vendor.vendorId}>
-                        <CardContent className="pt-6">
-                          <div className="flex items-start justify-between">
+                        <CardContent className="pt-4 sm:pt-6">
+                          <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-2 sm:gap-4">
                             <div>
-                              <h3 className="font-semibold text-lg">{vendor.companyName}</h3>
-                              <Badge variant="outline" className="mt-1">
+                              <h3 className="font-semibold text-base sm:text-lg">{vendor.companyName}</h3>
+                              <Badge variant="outline" className="mt-1 text-xs">
                                 {vendor.type}
                               </Badge>
                             </div>
-                            <div className="text-right">
-                              <div className="text-2xl font-bold">
+                            <div className="text-left sm:text-right">
+                              <div className="text-xl sm:text-2xl font-bold">
                                 {formatCurrency(vendor.totalAccepted)}
                               </div>
-                              <p className="text-sm text-gray-500">accepted</p>
+                              <p className="text-xs sm:text-sm text-gray-500">accepted</p>
                             </div>
                           </div>
-                          <Separator className="my-4" />
-                          <div className="grid grid-cols-3 gap-4 text-center">
+                          <Separator className="my-3 sm:my-4" />
+                          <div className="grid grid-cols-3 gap-2 sm:gap-4 text-center">
                             <div>
-                              <div className="text-lg font-medium">
+                              <div className="text-sm sm:text-lg font-medium truncate">
                                 {formatCurrency(vendor.totalQuoted)}
                               </div>
                               <p className="text-xs text-gray-500">{vendor.quotes} quotes</p>
                             </div>
                             <div>
-                              <div className="text-lg font-medium text-blue-600">
+                              <div className="text-sm sm:text-lg font-medium text-blue-600 truncate">
                                 {formatCurrency(vendor.totalPaid)}
                               </div>
-                              <p className="text-xs text-gray-500">{vendor.payments} payments</p>
+                              <p className="text-xs text-gray-500">{vendor.payments} paid</p>
                             </div>
                             <div>
-                              <div className={`text-lg font-medium ${
+                              <div className={`text-sm sm:text-lg font-medium truncate ${
                                 vendor.remaining > 0 ? "text-orange-600" : "text-green-600"
                               }`}>
                                 {formatCurrency(vendor.remaining)}
@@ -742,20 +742,20 @@ export default function BudgetPage() {
                   <div className="grid gap-4">
                     {quotes.map((quote) => (
                       <Card key={quote.id}>
-                        <CardContent className="pt-6">
-                          <div className="flex items-start justify-between">
-                            <div className="flex-1">
-                              <div className="flex items-center gap-2 mb-2">
-                                <h3 className="font-semibold text-lg">{quote.title}</h3>
-                                <Badge className={STATUS_COLORS[quote.status]}>
+                        <CardContent className="pt-4 sm:pt-6">
+                          <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3 sm:gap-4">
+                            <div className="flex-1 min-w-0">
+                              <div className="flex flex-wrap items-center gap-2 mb-2">
+                                <h3 className="font-semibold text-base sm:text-lg">{quote.title}</h3>
+                                <Badge className={`${STATUS_COLORS[quote.status]} text-xs`}>
                                   {STATUS_LABELS[quote.status]}
                                 </Badge>
                               </div>
-                              <p className="text-gray-600">{quote.vendor.companyName}</p>
+                              <p className="text-gray-600 text-sm sm:text-base">{quote.vendor.companyName}</p>
                               {quote.notes && (
-                                <p className="text-sm text-gray-500 mt-2">{quote.notes}</p>
+                                <p className="text-sm text-gray-500 mt-2 line-clamp-2">{quote.notes}</p>
                               )}
-                              <div className="flex gap-4 mt-3 text-sm">
+                              <div className="flex flex-wrap gap-x-4 gap-y-1 mt-3 text-xs sm:text-sm">
                                 <span>
                                   Total: <strong>{formatCurrency(quote.amountTotal)}</strong>
                                 </span>
@@ -767,10 +767,11 @@ export default function BudgetPage() {
                                 </span>
                               </div>
                             </div>
-                            <div className="flex gap-2">
+                            <div className="flex gap-2 w-full sm:w-auto">
                               <Button
                                 variant="outline"
                                 size="sm"
+                                className="flex-1 sm:flex-none"
                                 onClick={() => openEditQuoteDialog(quote)}
                               >
                                 Edit
@@ -778,6 +779,7 @@ export default function BudgetPage() {
                               <Button
                                 variant="destructive"
                                 size="sm"
+                                className="flex-1 sm:flex-none"
                                 onClick={() => handleDeleteQuote(quote.id)}
                               >
                                 Delete
@@ -801,16 +803,16 @@ export default function BudgetPage() {
                   <div className="grid gap-4">
                     {payments.map((payment) => (
                       <Card key={payment.id}>
-                        <CardContent className="pt-6">
-                          <div className="flex items-start justify-between">
-                            <div className="flex-1">
-                              <div className="flex items-center gap-2 mb-2">
-                                <h3 className="font-semibold text-lg">
+                        <CardContent className="pt-4 sm:pt-6">
+                          <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3 sm:gap-4">
+                            <div className="flex-1 min-w-0">
+                              <div className="flex flex-wrap items-center gap-2 mb-2">
+                                <h3 className="font-semibold text-base sm:text-lg">
                                   {formatCurrency(payment.amount, payment.currency)}
                                 </h3>
-                                <Badge variant="outline">{METHOD_LABELS[payment.method]}</Badge>
+                                <Badge variant="outline" className="text-xs">{METHOD_LABELS[payment.method]}</Badge>
                               </div>
-                              <div className="flex flex-wrap gap-2 text-sm text-gray-600">
+                              <div className="flex flex-wrap gap-x-3 gap-y-1 text-xs sm:text-sm text-gray-600">
                                 {payment.vendor && (
                                   <span>Vendor: {payment.vendor.companyName}</span>
                                 )}
@@ -822,12 +824,13 @@ export default function BudgetPage() {
                                 </span>
                               </div>
                               {payment.note && (
-                                <p className="text-sm text-gray-500 mt-2">{payment.note}</p>
+                                <p className="text-sm text-gray-500 mt-2 line-clamp-2">{payment.note}</p>
                               )}
                             </div>
                             <Button
                               variant="destructive"
                               size="sm"
+                              className="w-full sm:w-auto"
                               onClick={() => handleDeletePayment(payment.id)}
                             >
                               Delete

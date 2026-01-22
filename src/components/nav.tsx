@@ -10,26 +10,36 @@ import { MobileNav } from "@/components/mobile-nav"
 interface NavProps {
   userName: string
   userRole: string
+  guestLinkToken?: string
 }
 
-export function Nav({ userName, userRole }: NavProps) {
+export function Nav({ userName, userRole, guestLinkToken }: NavProps) {
   const pathname = usePathname()
 
   // Roles that can see all navigation items
   const isInternalUser = ["BRIDE", "GROOM", "PLANNER", "BRIDE_PARENT", "GROOM_PARENT", "FAMILY_HELPER"].includes(userRole)
   const isBrideOrGroom = userRole === "BRIDE" || userRole === "GROOM"
   const isPlanner = userRole === "PLANNER"
+  const isGuest = userRole === "GUEST"
 
   // Build nav items based on role
-  const navItems = [
-    { href: "/dashboard", label: "Dashboard" },
-    { href: "/tasks", label: "Tasks" },
-    { href: "/timeline", label: "Timeline" },
-    ...(isInternalUser ? [{ href: "/budget", label: "Budget" }] : []),
-    ...(isBrideOrGroom || isPlanner ? [{ href: "/vendors", label: "Vendors" }] : []),
-    ...(isBrideOrGroom || isPlanner ? [{ href: "/guest-links", label: "Guest Links" }] : []),
-    { href: "/settings", label: "Settings" },
-  ]
+  const navItems = isGuest
+    ? [
+        { href: guestLinkToken ? `/guest/${guestLinkToken}` : "/timeline", label: "Timeline" },
+        { href: guestLinkToken ? `/guest/${guestLinkToken}/uploads` : "/my-uploads", label: "My Uploads" },
+        { href: guestLinkToken ? `/guest/${guestLinkToken}/gallery` : "/gallery", label: "Gallery" },
+      ]
+    : [
+        { href: "/dashboard", label: "Dashboard" },
+        { href: "/tasks", label: "Tasks" },
+        { href: "/timeline", label: "Timeline" },
+        ...(isInternalUser ? [{ href: "/budget", label: "Budget" }] : []),
+        ...(isBrideOrGroom || isPlanner ? [{ href: "/vendors", label: "Vendors" }] : []),
+        ...(isBrideOrGroom || isPlanner ? [{ href: "/guest-links", label: "Guest Links" }] : []),
+        { href: "/gallery", label: "Gallery" },
+        ...(isBrideOrGroom || isPlanner ? [{ href: "/admin/photos", label: "Photos" }] : []),
+        { href: "/settings", label: "Settings" },
+      ]
 
   return (
     <nav className="sticky top-0 z-40 border-b bg-white/80 backdrop-blur-xl supports-[backdrop-filter]:bg-white/60">
@@ -37,9 +47,9 @@ export function Nav({ userName, userRole }: NavProps) {
         <div className="flex h-16 items-center justify-between">
           {/* Left side - Logo and Mobile Nav */}
           <div className="flex items-center gap-3">
-            <MobileNav userName={userName} userRole={userRole} />
+            <MobileNav userName={userName} userRole={userRole} guestLinkToken={guestLinkToken} />
             <Link
-              href="/dashboard"
+              href={isGuest ? (guestLinkToken ? `/guest/${guestLinkToken}` : "/timeline") : "/dashboard"}
               className="text-xl font-bold gradient-text"
             >
               ShaadiTimeline
@@ -72,17 +82,21 @@ export function Nav({ userName, userRole }: NavProps) {
               </div>
               <div className="text-sm text-right">
                 <p className="font-medium leading-tight">{userName}</p>
-                <p className="text-xs text-muted-foreground capitalize">{userRole.toLowerCase()}</p>
+                {!isGuest && (
+                  <p className="text-xs text-muted-foreground capitalize">{userRole.toLowerCase()}</p>
+                )}
               </div>
             </div>
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => signOut({ callbackUrl: "/login" })}
-              className="text-muted-foreground hover:text-foreground"
-            >
-              Sign Out
-            </Button>
+            {!isGuest && (
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => signOut({ callbackUrl: "/login" })}
+                className="text-muted-foreground hover:text-foreground"
+              >
+                Sign Out
+              </Button>
+            )}
           </div>
 
           {/* Mobile - Just show avatar */}

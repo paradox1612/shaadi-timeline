@@ -1,5 +1,12 @@
+"use client"
+
+import { use, useEffect, useState } from "react"
 import { Card, CardContent } from "@/components/ui/card"
 import { Clock, MapPin, ExternalLink, CalendarHeart, Heart } from "lucide-react"
+import { useGuest } from "@/components/guest/guest-provider"
+import { GuestNamePrompt } from "@/components/guest/guest-name-prompt"
+import { UploadPhotoDialog } from "@/components/timeline/upload-photo-dialog"
+import { Nav } from "@/components/nav"
 
 interface TimelineItem {
   id: string
@@ -31,74 +38,42 @@ interface GuestViewData {
 }
 
 async function getGuestData(token: string): Promise<GuestViewData | null> {
-  const { prisma } = await import("@/lib/prisma")
-
+  // This function will be called from the client, so we need to make an API call
   try {
-    const link = await prisma.guestViewLink.findUnique({
-      where: { token },
-      include: {
-        wedding: true,
-        allowedEventDays: {
-          include: {
-            eventDay: {
-              include: {
-                timelineItems: {
-                  where: {
-                    visibility: "AUDIENCE"
-                  },
-                  orderBy: [{ sortOrder: "asc" }, { startTime: "asc" }],
-                  select: {
-                    id: true,
-                    startTime: true,
-                    endTime: true,
-                    title: true,
-                    locationName: true,
-                    locationAddress: true,
-                    locationGoogleMapsUrl: true,
-                    audienceNotes: true
-                  }
-                }
-              }
-            }
-          }
-        }
-      }
-    })
-
-    if (!link) return null
-    if (link.expiresAt && new Date() > link.expiresAt) return null
-
-    return {
-      wedding: {
-        name: link.wedding.name,
-        locationCity: link.wedding.locationCity
-      },
-      guestLink: {
-        label: link.label
-      },
-      days: link.allowedEventDays.map(aed => ({
-        id: aed.eventDay.id,
-        label: aed.eventDay.label,
-        date: aed.eventDay.date.toISOString(),
-        items: aed.eventDay.timelineItems.map(item => ({
-          ...item,
-          startTime: item.startTime.toISOString(),
-          endTime: item.endTime?.toISOString() ?? null
-        }))
-      }))
+    const res = await fetch(`/api/guest-view/${token}`)
+    if (res.ok) {
+      return res.json()
     }
+    return null
   } catch {
     return null
   }
 }
 
-export default async function GuestViewPage({
-  params,
-}: {
-  params: Promise<{ token: string }>
-}) {
-  const { token } = await params
-  const data = await getGuestData(token)
+function GuestTimeline({ token }: { token: string }) {
+  const [data, setData] = useState<GuestViewData | null>(null)
+  const [loading, setLoading] = useState(true)
+  const { guest, isLoading: isGuestLoading } = useGuest()
+
+  // Show name prompt when not loading and no guest exists
+  const showNamePrompt = !isGuestLoading && !guest
+
+  useEffect(() => {
+    const fetchData = async () => {
+      const guestData = await getGuestData(token)
+      setData(guestData)
+      setLoading(false)
+    }
+    fetchData()
+  }, [token])
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-rose-50 via-white to-pink-50 p-4">
+        <div className="animate-pulse text-muted-foreground">Loading...</div>
+      </div>
+    )
+  }
 
   if (!data) {
     return (
@@ -142,6 +117,12 @@ export default async function GuestViewPage({
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-rose-50 via-white to-pink-50">
+      <GuestNamePrompt
+        open={showNamePrompt}
+        onOpenChange={() => {}}
+        required={true}
+      />
+      <Nav userName={guest?.name || "Guest"} userRole="GUEST" guestLinkToken={token} />
       {/* Hero Header */}
       <div className="relative overflow-hidden">
         <div className="absolute inset-0 bg-gradient-to-b from-primary/5 to-transparent" />
@@ -260,6 +241,12 @@ export default async function GuestViewPage({
                                 {item.audienceNotes}
                               </p>
                             )}
+                            <div className="mt-4">
+                              <UploadPhotoDialog
+                                timelineItemId={item.id}
+                                onUploadComplete={() => {}}
+                              />
+                            </div>
                           </div>
                         </div>
                       </CardContent>
@@ -289,4 +276,13 @@ export default async function GuestViewPage({
       </div>
     </div>
   )
+}
+
+export default function GuestViewPage({
+  params,
+}: {
+  params: Promise<{ token: string }>
+}) {
+  const { token } = use(params)
+  return <GuestTimeline token={token} />
 }

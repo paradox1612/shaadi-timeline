@@ -124,7 +124,7 @@ export default function SettingsPage() {
                   id="weddingName"
                   value={formName}
                   onChange={(e) => setFormName(e.target.value)}
-                  placeholder="e.g., Priya & Rahul's Wedding"
+                  placeholder="e.g., Freya & Kush's Wedding"
                   required
                 />
               </div>
